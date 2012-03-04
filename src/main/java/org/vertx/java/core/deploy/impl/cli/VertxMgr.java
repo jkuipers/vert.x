@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class VertxMgr {
 
   private static final Logger log = LoggerFactory.getLogger(VertxMgr.class);
-  
+
   private static boolean WIN_OS = System.getProperty("os.name").startsWith("Windows");
 
   public static void main(String[] args) {
@@ -188,7 +188,7 @@ public class VertxMgr {
     // Convert to URL[]
 
     String[] parts;
-    
+
     String cpSeparator = WIN_OS ? ";" : ":";
     if (cp.contains(cpSeparator)) {
       parts = cp.split(cpSeparator);
@@ -199,8 +199,8 @@ public class VertxMgr {
     final URL[] urls = new URL[parts.length];
     for (String part: parts) {
       try {
-    	  URL url = new File(part).toURI().toURL();
-    	  urls[index++] = url;
+        URL url = new File(part).toURI().toURL();
+        urls[index++] = url;
       } catch (MalformedURLException e) {
         throw new IllegalArgumentException("Invalid path " + part + " in cp " + cp) ;
       }
