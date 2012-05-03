@@ -16,11 +16,8 @@
 
 package vertx.tests.busmods.mailer;
 
-import org.vertx.java.busmods.mailer.Mailer;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.SimpleHandler;
-import org.vertx.java.core.Vertx;
-import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.json.JsonArray;
 import org.vertx.java.core.json.JsonObject;
@@ -31,16 +28,12 @@ import org.vertx.java.framework.TestClientBase;
  */
 public class TestClient extends TestClientBase {
 
-  private EventBus eb = EventBus.instance;
-
-  private String mailerID;
-
   @Override
   public void start() {
     super.start();
     JsonObject config = new JsonObject();
     config.putString("address", "test.mailer");
-    mailerID = Vertx.instance.deployWorkerVerticle(Mailer.class.getName(), config, 1, new SimpleHandler() {
+    container.deployVerticle("mailer", config, 1, new SimpleHandler() {
       public void handle() {
         tu.appReady();
       }
@@ -66,7 +59,7 @@ public class TestClient extends TestClientBase {
     };
     for (int i = 0; i < numMails; i++) {
       JsonObject jsonObject = createBaseMessage();
-      eb.send("test.mailer", jsonObject, replyHandler);
+      vertx.eventBus().send("test.mailer", jsonObject, replyHandler);
     }
   }
 
@@ -164,7 +157,7 @@ public class TestClient extends TestClientBase {
     };
     JsonObject jsonObject = createBaseMessage();
     jsonObject.mergeIn(overrides);
-    eb.send("test.mailer", jsonObject, replyHandler);
+    vertx.eventBus().send("test.mailer", jsonObject, replyHandler);
   }
 
   private void send(JsonObject message, final String error) throws Exception {
@@ -180,7 +173,7 @@ public class TestClient extends TestClientBase {
         tu.testComplete();
       }
     };
-    eb.send("test.mailer", message, replyHandler);
+    vertx.eventBus().send("test.mailer", message, replyHandler);
   }
 
   private JsonObject createBaseMessage() {

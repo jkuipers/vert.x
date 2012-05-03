@@ -18,18 +18,14 @@ package org.vertx.java.examples.echo;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.SimpleHandler;
-import org.vertx.java.core.Verticle;
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.net.NetClient;
 import org.vertx.java.core.net.NetSocket;
+import org.vertx.java.deploy.Verticle;
 
-public class PerfClient implements Verticle {
-
-  private NetClient client;
+public class PerfClient extends Verticle {
 
   public void start() {
-    client = new NetClient().connect(1234, "localhost", new Handler<NetSocket>() {
+    vertx.createNetClient().connect(1234, "localhost", new Handler<NetSocket>() {
       public void handle(NetSocket socket) {
 
         final int packetSize = 32 * 1024;
@@ -51,15 +47,11 @@ public class PerfClient implements Verticle {
           }
         });
 
-        Buffer buff = Buffer.create(new byte[packetSize]);
+        Buffer buff = new Buffer(new byte[packetSize]);
 
         sendData(socket, buff);
       }
     });
-  }
-
-  public void stop() {
-    client.close();
   }
 
   private void sendData(final NetSocket socket, final Buffer buff) {
@@ -70,7 +62,7 @@ public class PerfClient implements Verticle {
       }
     };
     if (!socket.writeQueueFull()) {
-      Vertx.instance.nextTick(handler);
+      vertx.runOnLoop(handler);
     } else {
       socket.drainHandler(handler);
     }

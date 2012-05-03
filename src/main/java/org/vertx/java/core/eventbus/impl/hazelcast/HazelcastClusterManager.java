@@ -20,15 +20,14 @@ import com.hazelcast.config.Config;
 import com.hazelcast.config.XmlConfigBuilder;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import org.vertx.java.core.eventbus.impl.AsyncMultiMap;
 import org.vertx.java.core.eventbus.impl.ClusterManager;
+import org.vertx.java.core.eventbus.impl.SubsMap;
+import org.vertx.java.core.impl.VertxInternal;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
@@ -60,7 +59,7 @@ public class HazelcastClusterManager implements ClusterManager {
           }
         }
       } else {
-        log.warn("Cannot find cluster.xml. Using default cluster configuration");
+        log.warn("Cannot find cluster.xml on classpath. Using default cluster configuration");
         cfg = null;
       }
       //We use the default instance
@@ -69,23 +68,17 @@ public class HazelcastClusterManager implements ClusterManager {
     return instance;
   }
 
-  private HazelcastInstance hazelcast;
+  private final VertxInternal vertx;
+  private final HazelcastInstance hazelcast;
 
-  public HazelcastClusterManager() {
+  public HazelcastClusterManager(VertxInternal vertx) {
+    this.vertx = vertx;
     hazelcast = getHazelcast();
   }
 
-  public AsyncMultiMap getMultiMap(String name) {
+  public SubsMap getSubsMap(String name) {
     com.hazelcast.core.MultiMap map = hazelcast.getMultiMap(name);
-    return new HazelcastAsyncMultiMap(map);
-  }
-
-  public Set getSet(String name) {
-    return hazelcast.getSet(name);
-  }
-
-  public Map getMap(String name) {
-    return hazelcast.getMap(name);
+    return new HazelcastSubsMap(vertx, map);
   }
 
   public void close() {

@@ -31,6 +31,8 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.vertx.java.core.AsyncResult;
+import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.SimpleHandler;
 import org.vertx.java.core.buffer.Buffer;
@@ -38,8 +40,6 @@ import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.impl.ws.Handshake;
 import org.vertx.java.core.http.impl.ws.hybi08.Handshake08;
-import org.vertx.java.core.impl.CompletionHandler;
-import org.vertx.java.core.impl.SimpleFuture;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LoggerFactory;
 
@@ -50,12 +50,14 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author Michael Dobozy
  * @author Bob McWhirter
+ *
+ * Adapted by Tim Fox
  */
 public class Handshake00 implements Handshake {
 
   private static Logger log = LoggerFactory.getLogger(Handshake08.class);
 
-  private WebSocketChallenge00 challenge;
+  private final WebSocketChallenge00 challenge;
 
   protected String getWebSocketLocation(HttpRequest request) {
     return "ws://" + request.getHeader(HttpHeaders.Names.HOST) + request.getUri();
@@ -71,29 +73,31 @@ public class Handshake00 implements Handshake {
 
   public void fillInRequest(HttpClientRequest req, String hostHeader) throws Exception {
 
-    req.putHeader(HttpHeaders.Names.CONNECTION, "Upgrade");
-    req.putHeader(HttpHeaders.Names.UPGRADE, "WebSocket");
-    req.putHeader(HttpHeaders.Names.HOST, hostHeader);
+    req.headers().put(HttpHeaders.Names.CONNECTION, "Upgrade");
+    req.headers().put(HttpHeaders.Names.UPGRADE, "WebSocket");
+    req.headers().put(HttpHeaders.Names.HOST, hostHeader);
 
-    req.putHeader(HttpHeaders.Names.SEC_WEBSOCKET_KEY1, this.challenge.getKey1String());
-    req.putHeader(HttpHeaders.Names.SEC_WEBSOCKET_KEY2, this.challenge.getKey2String());
+    req.headers().put(HttpHeaders.Names.SEC_WEBSOCKET_KEY1, this.challenge.getKey1String());
+    req.headers().put(HttpHeaders.Names.SEC_WEBSOCKET_KEY2, this.challenge.getKey2String());
 
-    Buffer buff = Buffer.create(6);
+    Buffer buff = new Buffer(6);
     buff.appendBytes(challenge.getKey3());
     buff.appendByte((byte) '\r');
     buff.appendByte((byte) '\n');
     req.write(buff);
   }
 
-  public HttpResponse generateResponse(HttpRequest request) throws Exception {
+  public HttpResponse generateResponse(HttpRequest request, String serverOrigin) throws Exception {
 
-    HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, new HttpResponseStatus(101, "Web Socket Protocol Handshake - IETF-00"));
+    HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, new HttpResponseStatus(101,
+        "WebSocket Protocol Handshake"));
     response.addHeader(HttpHeaders.Names.CONNECTION, "Upgrade");
     response.addHeader(HttpHeaders.Names.UPGRADE, "WebSocket");
     String origin = request.getHeader(Names.ORIGIN);
-    if (origin != null) {
-      response.addHeader(Names.SEC_WEBSOCKET_ORIGIN, request.getHeader(Names.ORIGIN));
+    if (origin == null) {
+      origin = serverOrigin;
     }
+    response.addHeader(Names.SEC_WEBSOCKET_ORIGIN, origin);
     response.addHeader(Names.SEC_WEBSOCKET_LOCATION, getWebSocketLocation(request));
 
     String protocol = request.getHeader(Names.SEC_WEBSOCKET_PROTOCOL);
@@ -122,9 +126,8 @@ public class Handshake00 implements Handshake {
     return response;
   }
 
-  public void onComplete(HttpClientResponse response, final CompletionHandler<Void> doneHandler) {
-
-    final Buffer buff = Buffer.create(16);
+  public void onComplete(final HttpClientResponse response, final AsyncResultHandler<Void> doneHandler) {
+    final Buffer buff = new Buffer(16);
     response.dataHandler(new Handler<Buffer>() {
       public void handle(Buffer data) {
         buff.appendBuffer(data);
@@ -133,17 +136,17 @@ public class Handshake00 implements Handshake {
     response.endHandler(new SimpleHandler() {
       public void handle() {
         byte[] bytes = buff.getBytes();
-        SimpleFuture<Void> fut = new SimpleFuture<>();
+        AsyncResult<Void> res;
         try {
           if (challenge.verify(bytes)) {
-            fut.setResult(null);
+            res = new AsyncResult<>((Void)null);
           } else {
-            fut.setException(new Exception("Invalid websocket handshake response"));
+            res = new AsyncResult<>(new Exception("Invalid websocket handshake response"));
           }
         } catch (Exception e) {
-          fut.setException(e);
+          res = new AsyncResult<>(e);
         }
-        doneHandler.handle(fut);
+        doneHandler.handle(res);
       }
     });
   }

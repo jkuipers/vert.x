@@ -5,48 +5,57 @@ start-up of the verticles that make up the application.
 
 load('vertx.js');
 
-var log = vertx.logger;
+// Our application config - you can maintain it here or alternatively you could
+// stick it in a conf.json text file and specify that on the command line when
+// starting this verticle
 
-// Our application config
+// Configuration for the web server
+var webServerConf = {
 
-var app_conf = {
-  persistor_conf: {
-    address: 'demo.persistor',
-    db_name: 'test_db'
-  },
-  auth_mgr_conf: {
-    address: 'demo.authMgr',
-    user_collection: 'users',
-    persistor_address: 'demo.persistor'
-  },
-  mailer_conf: {
-    address: 'demo.mailer'
-    /*
-    Uncomment this to use a gmail account
-    ,
-    host: 'smtp.googlemail.com',
-    port: 465,
-    ssl: true,
-    auth: true,
-    username: 'your_username',
-    password: 'your_password'
-    */
-  }
-}
+  // Normal web server stuff
 
-// Deploy the busmods
+  port: 8080,
+  host: 'localhost',
+  ssl: true,
 
-vertx.deployWorkerVerticle('busmods/mongo_persistor.js', app_conf.persistor_conf, 1, function() {
+  // Configuration for the event bus client side bridge
+  // This bridges messages from the client side to the server side event bus
+  bridge: true,
+
+  // This defines which messages from the client we will let through
+  // to the server side
+  permitted: [
+    // Allow calls to get static album data from the persistor
+    {
+      address : 'vertx.mongopersistor',
+      match : {
+        action : 'find',
+        collection : 'albums'
+      }
+    },
+    // And to place orders
+    {
+      address : 'vertx.mongopersistor',
+      requires_auth : true,  // User must be logged in to send let these through
+      match : {
+        action : 'save',
+        collection : 'orders'
+      }
+    }
+  ]
+};
+
+// Now we deploy the modules that we need
+
+// Deploy a MongoDB persistor module
+
+vertx.deployVerticle('mongo-persistor', null, 1, function() {
+
+  // And when it's deployed run a script to load it with some reference
+  // data for the demo
   load('static_data.js');
 });
-vertx.deployVerticle('busmods/auth_mgr.js', app_conf.auth_mgr_conf);
-vertx.deployWorkerVerticle('busmods/mailer.js', app_conf.mailer_conf);
 
+// Start the web server, with the config we defined above
 
-// Start the order manager
-
-vertx.deployVerticle('order_mgr.js');
-
-// Start the web server
-
-vertx.deployVerticle('web_server.js');
+vertx.deployVerticle('web-server', webServerConf);

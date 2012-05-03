@@ -1,8 +1,8 @@
 load('vertx.js');
 
-var eb = vertx.EventBus;
+var eb = vertx.eventBus;
 
-var pa = 'demo.persistor';
+var pa = 'vertx.mongopersistor';
 
 var albums = [
   {

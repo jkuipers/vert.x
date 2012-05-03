@@ -16,7 +16,6 @@
 
 package vertx.tests.core.logger;
 
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.framework.TestClientBase;
 
@@ -40,7 +39,7 @@ public class TestClient extends TestClientBase {
 
   public void testLogger() {
 
-    Logger logger = Vertx.instance.getLogger();
+    Logger logger = container.getLogger();
     tu.azzert(logger != null);
 
     //Not much we can do to test this

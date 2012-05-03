@@ -17,22 +17,23 @@
 package vertx.tests.core.http;
 
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.Verticle;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
+import org.vertx.java.deploy.Verticle;
 import org.vertx.java.framework.TestUtils;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-public class ClosingServer implements Verticle {
+public class ClosingServer extends Verticle {
 
-  protected TestUtils tu = new TestUtils();
+  protected TestUtils tu;
 
   private HttpServer server;
 
   public void start() {
-    server = new HttpServer().requestHandler(new Handler<HttpServerRequest>() {
+    tu = new TestUtils(vertx);
+    server = vertx.createHttpServer().requestHandler(new Handler<HttpServerRequest>() {
       public void handle(final HttpServerRequest req) {
         tu.checkContext();
 

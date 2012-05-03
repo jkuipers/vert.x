@@ -24,66 +24,68 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 /**
- * <p>A Buffer represents a sequence of zero or more bytes that can be written to or read from, and which expands as necessary to accomodate any bytes written to it.</p>
- *
- * <p>Buffer instances should always be created using the static factory methods that take the form {@code createXXX}.
- * Factory methods exist for creating Buffer instances from a {@code byte[]} and a {@code String}.</p>
- *
- * <p>There are two ways to write data to a Buffer: The first method involves methods that take the form {@code setXXX}.
+ * A Buffer represents a sequence of zero or more bytes that can be written to or read from, and which expands as
+ * necessary to accomodate any bytes written to it.<p>
+ * There are two ways to write data to a Buffer: The first method involves methods that take the form {@code setXXX}.
  * These methods write data into the buffer starting at the specified position. The position does not have to be inside data that
  * has already been written to the buffer; the buffer will automatically expand to encompass the position plus any data that needs
- * to be written. All positions are measured in bytes and start with zero.</p>
- *
- * <p>The second method involves methods that take the form {@code appendXXX}; these methods append data
- * at the end of the buffer.</p>
- *
- * <p>Methods exist to both {@code set} and {@code append} all primitive types, {@link java.lang.String}, {@link java.nio.ByteBuffer} and
- * other instances of Buffer.</p>
- *
- * <p>Data can be read from a buffer by invoking methods which take the form {@code getXXX}. These methods take a parameter
- * representing the position in the Buffer from where to read data.</p>
+ * to be written. All positions are measured in bytes and start with zero.<p>
+ * The second method involves methods that take the form {@code appendXXX}; these methods append data
+ * at the end of the buffer.<p>
+ * Methods exist to both {@code set} and {@code append} all primitive types, {@link java.lang.String}, {@link java.nio.ByteBuffer} and
+ * other instances of Buffer.<p>
+ * Data can be read from a buffer by invoking methods which take the form {@code getXXX}. These methods take a parameter
+ * representing the position in the Buffer from where to read data.<p>
+ * Once a buffer has been written to a socket or other write stream, the same buffer instance can't be written again to another WriteStream.<p>
  *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 public class Buffer {
 
-  //vert.x buffers are always dynamic
+  // vert.x buffers are always dynamic
   private DynamicChannelBuffer buffer;
 
   /**
+   * Create an empty buffer
+   */
+  public Buffer() {
+    this(0);
+  }
+
+  /**
    * Creates a new empty Buffer that is expected to have a size of {@code initialSizeHint} after data has been
-   * written to it.<p> Please note that {@code length} of the Buffer immediately after creation will be zero. The {@code initialSizeHint}
-   * is merely a hint to the system for how much memory to initially allocate to the buffer to prevent excessive
+   * written to it.<p>
+   * Please note that {@code length} of the Buffer immediately after creation will be zero.<p>
+   * The {@code initialSizeHint} is merely a hint to the system for how much memory to initially allocate to the buffer to prevent excessive
    * automatic re-allocations as data is written to it.
    */
-  public static Buffer create(int initialSizeHint) {
-    return new Buffer(ChannelBuffers.dynamicBuffer(initialSizeHint));
+  public Buffer(int initialSizeHint) {
+    this(ChannelBuffers.dynamicBuffer(initialSizeHint));
   }
 
   /**
-   * Create a new Buffer that contains the contents of the {@code byte[] bytes}
+   * Create a new Buffer that contains the contents of a {@code byte[]}
    */
-  public static Buffer create(byte[] bytes) {
-    return new Buffer(ChannelBuffers.wrappedBuffer(bytes));
+  public Buffer(byte[] bytes) {
+    this(ChannelBuffers.wrappedBuffer(bytes));
   }
 
   /**
-   * Create a new Buffer that contains the contents of {@code String str} encoded according to the encoding {@code enc}
+   * Create a new Buffer that contains the contents of a {@code String str} encoded according to the encoding {@code enc}
    */
-  public static Buffer create(String str, String enc) {
-    return new Buffer(ChannelBuffers.copiedBuffer(str, Charset.forName(enc)));
+  public Buffer(String str, String enc) {
+    this(ChannelBuffers.copiedBuffer(str, Charset.forName(enc)));
   }
 
   /**
    * Create a new Buffer that contains the contents of {@code String str} encoded with UTF-8 encoding
    */
-  public static Buffer create(String str) {
-    return Buffer.create(str, "UTF-8");
+  public Buffer(String str) {
+    this(str, "UTF-8");
   }
 
   /**
-   * Create a new Buffer from a Netty {@code ChannelBuffer} instance. Please use the static {@code createXXX methods}
-   * to create Buffer instances.<p>
+   * Create a new Buffer from a Netty {@code ChannelBuffer} instance.
    * This method is meant for internal use only.
    */
   public Buffer(ChannelBuffer buffer) {
@@ -113,9 +115,7 @@ public class Buffer {
 
   /**
    * Returns the {@code byte} at position {@code pos} in the Buffer.
-   *
-   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or
-   *                                   {@code pos + 1} is greater than the length {@code } of the Buffer.
+   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or {@code pos + 1} is greater than the length of the Buffer.
    */
   public byte getByte(int pos) {
     return buffer.getByte(pos);
@@ -124,8 +124,7 @@ public class Buffer {
   /**
    * Returns the {@code int} at position {@code pos} in the Buffer.
    *
-   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or
-   *                                   {@code pos + 4} is greater than the length {@code } of the Buffer.
+   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or {@code pos + 4} is greater than the length of the Buffer.
    */
   public int getInt(int pos) {
     return buffer.getInt(pos);
@@ -134,8 +133,7 @@ public class Buffer {
   /**
    * Returns the {@code long} at position {@code pos} in the Buffer.
    *
-   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or
-   *                                   {@code pos + 8} is greater than the length {@code } of the Buffer.
+   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or {@code pos + 8} is greater than the length of the Buffer.
    */
   public long getLong(int pos) {
     return buffer.getLong(pos);
@@ -144,8 +142,7 @@ public class Buffer {
   /**
    * Returns the {@code double} at position {@code pos} in the Buffer.
    *
-   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or
-   *                                   {@code pos + 8} is greater than the length {@code } of the Buffer.
+   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or {@code pos + 8} is greater than the length of the Buffer.
    */
   public double getDouble(int pos) {
     return buffer.getDouble(pos);
@@ -154,8 +151,7 @@ public class Buffer {
   /**
    * Returns the {@code float} at position {@code pos} in the Buffer.
    *
-   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or
-   *                                   {@code pos + 4} is greater than the length {@code } of the Buffer.
+   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or {@code pos + 4} is greater than the length of the Buffer.
    */
   public float getFloat(int pos) {
     return buffer.getFloat(pos);
@@ -164,8 +160,7 @@ public class Buffer {
   /**
    * Returns the {@code short} at position {@code pos} in the Buffer.
    *
-   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or
-   *                                   {@code pos + 2} is greater than the length {@code } of the Buffer.
+   * @throws IndexOutOfBoundsException if the specified {@code pos} is less than {@code 0} or {@code pos + 2} is greater than the length of the Buffer.
    */
   public short getShort(int pos) {
     return buffer.getShort(pos);
@@ -191,7 +186,36 @@ public class Buffer {
   }
 
   /**
-   * Appends the specified {@code Buffer} to the end of the Buffer. The buffer will expand as necessary to accomodate any bytes written.<p>
+   * Returns a copy of a sub-sequence the Buffer as a {@link Buffer} starting at position {@code start}
+   * and ending at position {@code end - 1}
+   */
+  public Buffer getBuffer(int start, int end) {
+    return new Buffer(getBytes(start, end));
+  }
+
+  /**
+   * Returns a copy of a sub-sequence the Buffer as a {@code String} starting at position {@code start}
+   * and ending at position {@code end - 1} interpreted as a String in the specified encoding
+   */
+  public String getString(int start, int end, String enc) {
+    byte[] bytes = getBytes(start, end);
+    Charset cs = Charset.forName(enc);
+    return new String(bytes, cs);
+  }
+
+  /**
+   * Returns a copy of a sub-sequence the Buffer as a {@code String} starting at position {@code start}
+   * and ending at position {@code end - 1} interpreted as a String in UTF-8 encoding
+   */
+  public String getString(int start, int end) {
+    byte[] bytes = getBytes(start, end);
+    Charset cs = Charset.forName("UTF-8");
+    return new String(bytes, cs);
+  }
+
+  /**
+   * Appends the specified {@code Buffer} to the end of this Buffer. The buffer will expand as necessary to accomodate
+   * any bytes written.<p>
    * Returns a reference to {@code this} so multiple operations can be appended together.
    */
   public Buffer appendBuffer(Buffer buff) {
@@ -265,7 +289,7 @@ public class Buffer {
   }
 
   /**
-   * Appends the specified {@code String str} to the end of the Buffer with the encoding as specified by {@code enc}.<p>
+   * Appends the specified {@code String} to the end of the Buffer with the encoding as specified by {@code enc}.<p>
    * The buffer will expand as necessary to accomodate any bytes written.<p>
    * Returns a reference to {@code this} so multiple operations can be appended together.<p>
    */
@@ -303,7 +327,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the {@code long} at position {@code pos} in the Buffer to the value {@code i}.<p>
+   * Sets the {@code long} at position {@code pos} in the Buffer to the value {@code l}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setLong(int pos, long l) {
@@ -313,7 +337,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the {@code double} at position {@code pos} in the Buffer to the value {@code i}.<p>
+   * Sets the {@code double} at position {@code pos} in the Buffer to the value {@code d}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setDouble(int pos, double d) {
@@ -323,7 +347,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the {@code float} at position {@code pos} in the Buffer to the value {@code i}.<p>
+   * Sets the {@code float} at position {@code pos} in the Buffer to the value {@code f}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setFloat(int pos, float f) {
@@ -333,7 +357,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the {@code short} at position {@code pos} in the Buffer to the value {@code i}.<p>
+   * Sets the {@code short} at position {@code pos} in the Buffer to the value {@code s}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setShort(int pos, short s) {
@@ -343,7 +367,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the bytes at position {@code pos} in the Buffer to the value {@code b}.<p>
+   * Sets the bytes at position {@code pos} in the Buffer to the bytes represented by the {@code Buffer b}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setBuffer(int pos, Buffer b) {
@@ -353,7 +377,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the bytes at position {@code pos} in the Buffer to the value {@code b}.<p>
+   * Sets the bytes at position {@code pos} in the Buffer to the bytes represented by the {@code ByteBuffer b}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setBytes(int pos, ByteBuffer b) {
@@ -363,7 +387,7 @@ public class Buffer {
   }
 
   /**
-   * Sets the bytes at position {@code pos} in the Buffer to the value {@code b}.<p>
+   * Sets the bytes at position {@code pos} in the Buffer to the bytes represented by the {@code byte[] b}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
   public Buffer setBytes(int pos, byte[] b) {
@@ -376,7 +400,7 @@ public class Buffer {
    * Sets the bytes at position {@code pos} in the Buffer to the value of {@code str} endoded in UTF-8.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
-  public Buffer setBytes(int pos, String str) {
+  public Buffer setString(int pos, String str) {
     return setBytes(pos, str, CharsetUtil.UTF_8);
   }
 
@@ -384,24 +408,16 @@ public class Buffer {
    * Sets the bytes at position {@code pos} in the Buffer to the value of {@code str} encoded in encoding {@code enc}.<p>
    * The buffer will expand as necessary to accomodate any value written.
    */
-  public Buffer setBytes(int pos, String str, String enc) {
+  public Buffer setString(int pos, String str, String enc) {
     return setBytes(pos, str, Charset.forName(enc));
   }
 
   /**
-   * Returns the length of the buffer, measured in bytes. The length is defined as the largest position of any byte in the
-   * buffer + 1. All positions are indexed from zero.
+   * Returns the length of the buffer, measured in bytes.
+   * All positions are indexed from zero.
    */
   public int length() {
     return buffer.writerIndex();
-  }
-
-  /**
-   * Returns a copy of a sub-sequence the Buffer starting at position {@code start}
-   * and ending at position {@code end - 1}.
-   */
-  public Buffer copy(int start, int end) {
-    return new Buffer(buffer.copy(start, end - start));
   }
 
   /**

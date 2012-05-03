@@ -48,7 +48,7 @@ module Vertx
     # Create a new SockJSServer
     # @param http_server [HttpServer] You must pass in an instance of {HttpServer}
     def initialize(http_server)
-      @j_server = org.vertx.java.core.sockjs.SockJSServer.new(http_server._to_java_server)
+      @j_server = org.vertx.java.deploy.impl.VertxLocator.vertx.createSockJSServer(http_server._to_java_server)
     end
 
     # Install an application
@@ -57,27 +57,18 @@ module Vertx
     # @param hndlr [Block] Handler to call when a new {SockJSSocket is created}
     def install_app(config, proc = nil, &hndlr)
       hndlr = proc if proc
-
-      j_config = org.vertx.java.core.sockjs.AppConfig.new
-
-      prefix = config["prefix"]
-      j_config.setPrefix(prefix) if prefix
-      jsessionid = config["insert_JSESSIONID"]
-      j_config.setInsertJSESSIONID(jsessionid) if jsessionid
-      session_timeout = config["session_timeout"]
-      j_config.setSessionTimeout(session_timeout) if session_timeout
-      heartbeat_period = config["heartbeat_period"]
-      j_config.setHeartbeatPeriod(heartbeat_period) if heartbeat_period
-      max_bytes_streaming = config["max_bytes_streaming"]
-      j_config.setMaxBytesStreaming(max_bytes_streaming) if max_bytes_streaming
-      library_url = config["library_url"]
-      j_config.setLibraryURL(library_url) if library_url
-
-      # TODO disabled transports
-
+      j_config = org.vertx.java.core.json.JsonObject.new(config)
       @j_server.installApp(j_config) { |j_sock|
         hndlr.call(SockJSSocket.new(j_sock))
       }
+    end
+
+    def bridge(config, permitted, user_collection = nil, persistor_address = nil,
+               session_timeout = 30 * 60 * 1000,
+               login_address = nil, logout_address = nil)
+      a_json = org.vertx.java.core.json.JsonArray.new(permitted)
+      @j_server.bridge(org.vertx.java.core.json.JsonObject.new(config), a_json, user_collection, persistor_address,
+                       session_timeout, login_address, logout_address)
     end
 
   end

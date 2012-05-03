@@ -1,15 +1,14 @@
 load('vertx.js')
 
-var server = new vertx.HttpServer()
-// Let everything through
-new vertx.SockJSBridge(server, {prefix: "/eventbus"}, [{}]);
+var server = vertx.createHttpServer()
 
-// Also serve the index page
+// Serve the static resources
 server.requestHandler(function(req) {
   if (req.uri == "/") req.response.sendFile("eventbusbridge/index.html")
   if (req.uri == "/vertxbus.js") req.response.sendFile("eventbusbridge/vertxbus.js")
-}).listen(8080)
+})
 
-function vertxStop() {
-  server.close()
-}
+// Create a SockJS bridge which lets everything through (be careful!)
+vertx.createSockJSServer(server).bridge({prefix: "/eventbus"}, [{ address: "foo"}]);
+
+server.listen(8080);

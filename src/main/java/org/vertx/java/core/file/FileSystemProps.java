@@ -17,11 +17,12 @@
 package org.vertx.java.core.file;
 
 /**
- * Represents properties of the file system
- * <p>
+ * Represents properties of the file system<p>
+ *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 public class FileSystemProps {
+
   /**
    * The total space on the file system, in bytes
    */
@@ -37,7 +38,7 @@ public class FileSystemProps {
    */
   public final long usableSpace;
 
-  FileSystemProps(long totalSpace, long unallocatedSpace, long usableSpace) {
+  public FileSystemProps(long totalSpace, long unallocatedSpace, long usableSpace) {
     this.totalSpace = totalSpace;
     this.unallocatedSpace = unallocatedSpace;
     this.usableSpace = usableSpace;

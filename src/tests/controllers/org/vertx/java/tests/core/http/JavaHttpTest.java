@@ -17,9 +17,13 @@
 package org.vertx.java.tests.core.http;
 
 import org.junit.Test;
+import org.vertx.java.core.Handler;
+import org.vertx.java.core.SimpleHandler;
+import org.vertx.java.core.Vertx;
 import org.vertx.java.core.http.HttpClient;
+import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.HttpServer;
-import org.vertx.java.core.shareddata.SharedData;
+import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.framework.TestBase;
 import vertx.tests.core.http.CountServer;
 import vertx.tests.core.http.DrainingServer;
@@ -28,6 +32,9 @@ import vertx.tests.core.http.InstanceCheckServer;
 import vertx.tests.core.http.PausingServer;
 import vertx.tests.core.http.TLSServer;
 import vertx.tests.core.http.TLSTestParams;
+
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
@@ -81,23 +88,33 @@ public class JavaHttpTest extends TestBase {
   }
 
   @Test
-  public void testCreateServerNoContext() throws Exception {
-    try {
-      new HttpServer();
-      fail("Should throw exception");
-    } catch (IllegalStateException e) {
-      // Ok
-    }
-  }
+  public void testNoContext() throws Exception {
 
-  @Test
-  public void testCreateClientNoContext() throws Exception {
-    try {
-      new HttpClient();
-      fail("Should throw exception");
-    } catch (IllegalStateException e) {
-      // Ok
-    }
+    final CountDownLatch latch = new CountDownLatch(1);
+
+    final Vertx vertx = Vertx.newVertx();
+
+    final HttpServer server = vertx.createHttpServer();
+    server.requestHandler(new Handler<HttpServerRequest>() {
+      public void handle(HttpServerRequest req) {
+        req.response.end();
+      }
+    });
+    server.listen(8080);
+
+    final HttpClient client = vertx.createHttpClient().setPort(8080);
+    client.getNow("some-uri", new Handler<HttpClientResponse>() {
+      public void handle(HttpClientResponse resp) {
+        server.close(new SimpleHandler() {
+          public void handle() {
+            client.close();
+            latch.countDown();
+          }
+        });
+      }
+    });
+
+    assertTrue(latch.await(5, TimeUnit.SECONDS));
   }
 
   public void testSimpleGET() {
@@ -328,10 +345,6 @@ public class JavaHttpTest extends TestBase {
     startTest(getMethodName());
   }
 
-  public void testResponseSetTrailerNonChunked() {
-    startTest(getMethodName());
-  }
-
   public void testUseResponseAfterComplete() {
     startTest(getMethodName());
   }
@@ -509,7 +522,7 @@ public class JavaHttpTest extends TestBase {
     //Put the params in shared-data
     TLSTestParams params = new TLSTestParams(clientCert, clientTrust, serverCert, serverTrust,
         requireClientAuth, clientTrustAll, shouldPass);
-    SharedData.instance.getMap("TLSTest").put("params", params.serialize());
+    vertx.sharedData().getMap("TLSTest").put("params", params.serialize());
     startApp(TLSServer.class.getName());
     startTest(testName);
   }
@@ -593,16 +606,16 @@ public class JavaHttpTest extends TestBase {
         appNames[i] = startApp(InstanceCheckServer.class.getName(), 1);
       }
 
-      SharedData.instance.getSet("requests").clear();
-      SharedData.instance.getSet("servers").clear();
-      SharedData.instance.getSet("instances").clear();
-      SharedData.instance.getMap("params").put("numRequests", numRequests);
+      vertx.sharedData().getSet("requests").clear();
+      vertx.sharedData().getSet("servers").clear();
+      vertx.sharedData().getSet("instances").clear();
+      vertx.sharedData().getMap("params").put("numRequests", numRequests);
 
       startTest(testName);
 
-      assertEquals(numRequests, SharedData.instance.getSet("requests").size());
+      assertEquals(numRequests, vertx.sharedData().getSet("requests").size());
       // And make sure connection requests are distributed amongst them
-      assertEquals(initialServers, SharedData.instance.getSet("instances").size());
+      assertEquals(initialServers, vertx.sharedData().getSet("instances").size());
 
       // Then stop some
 
@@ -611,10 +624,10 @@ public class JavaHttpTest extends TestBase {
       }
     }
 
-    SharedData.instance.getSet("requests").clear();
-    SharedData.instance.getSet("servers").clear();
-    SharedData.instance.getSet("instances").clear();
-    SharedData.instance.getMap("params").put("numRequests", numRequests);
+    vertx.sharedData().getSet("requests").clear();
+    vertx.sharedData().getSet("servers").clear();
+    vertx.sharedData().getSet("instances").clear();
+    vertx.sharedData().getMap("params").put("numRequests", numRequests);
 
     //Now start some more
 
@@ -628,9 +641,9 @@ public class JavaHttpTest extends TestBase {
 
     startTest(testName);
 
-    assertEquals(numRequests, SharedData.instance.getSet("requests").size());
+    assertEquals(numRequests, vertx.sharedData().getSet("requests").size());
     // And make sure connection requests are distributed amongst them
-    assertEquals(numInstances + initialServers - initialToStop, SharedData.instance.getSet("instances").size());
+    assertEquals(numInstances + initialServers - initialToStop, vertx.sharedData().getSet("instances").size());
   }
 
 

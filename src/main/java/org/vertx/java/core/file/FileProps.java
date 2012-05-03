@@ -20,8 +20,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Date;
 
 /**
- * Represents properties of a file on the file system
- * <p>
+ * Represents properties of a file on the file system<p>
+ *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 public class FileProps {
@@ -66,7 +66,7 @@ public class FileProps {
    */
   public final long size;
 
-  FileProps(BasicFileAttributes attrs) {
+  public FileProps(BasicFileAttributes attrs) {
     creationTime = new Date(attrs.creationTime().toMillis());
     lastModifiedTime = new Date(attrs.lastModifiedTime().toMillis());
     lastAccessTime = new Date(attrs.lastAccessTime().toMillis());

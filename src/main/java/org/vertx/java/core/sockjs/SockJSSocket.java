@@ -17,8 +17,8 @@
 package org.vertx.java.core.sockjs;
 
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.streams.ReadStream;
 import org.vertx.java.core.streams.WriteStream;
@@ -27,31 +27,41 @@ import java.util.UUID;
 
 /**
  *
- * <p>You interact with SockJS clients through instances of SockJS socket.</p>
- *
- * <p>The API is very similar to {@link org.vertx.java.core.http.WebSocket}. It implements both
- * {@link ReadStream} and {@link WriteStream} so it can be used with {@link org.vertx.java.core.streams.Pump} to enable
- * flow control.</p>
+ * You interact with SockJS clients through instances of SockJS socket.<p>
+ * The API is very similar to {@link org.vertx.java.core.http.WebSocket}.
+ * It implements both {@link ReadStream} and {@link WriteStream} so it can be used with
+ * {@link org.vertx.java.core.streams.Pump} to pump data with flow control.<p>
+ * Instances of this class are not thread-safe.<p>
  *
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 public abstract class SockJSSocket implements ReadStream, WriteStream {
 
-  public final String writeHandlerID;
-  public final Handler<Message<Buffer>> writeHandler;
+  private final Handler<Message<Buffer>> writeHandler;
+  protected final Vertx vertx;
 
-  public SockJSSocket() {
+  /**
+   * When a {@code SockJSSocket} is created it automatically registers an event handler with the event bus, the ID of that
+   * handler is given by {@code writeHandlerID}.<p>
+   * Given this ID, a different event loop can send a buffer to that event handler using the event bus and
+   * that buffer will be received by this instance in its own event loop and written to the underlying socket. This
+   * allows you to write data to other sockets which are owned by different event loops.
+   */
+  public final String writeHandlerID;
+
+  protected SockJSSocket(Vertx vertx) {
+    this.vertx = vertx;
     this.writeHandler = new Handler<Message<Buffer>>() {
       public void handle(Message<Buffer> buff) {
         writeBuffer(buff.body);
       }
     };
     this.writeHandlerID = UUID.randomUUID().toString();
-    EventBus.instance.registerHandler(writeHandlerID, writeHandler);
+    vertx.eventBus().registerLocalHandler(writeHandlerID, writeHandler);
   }
 
   public void close() {
-    EventBus.instance.unregisterHandler(writeHandlerID, writeHandler);
+    vertx.eventBus().unregisterHandler(writeHandlerID, writeHandler);
   }
 
 }

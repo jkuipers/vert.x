@@ -17,21 +17,36 @@
 package org.vertx.java.core.json.impl;
 
 import org.codehaus.jackson.map.ObjectMapper;
+import org.vertx.java.core.json.DecodeException;
 import org.vertx.java.core.json.EncodeException;
+import org.vertx.java.core.logging.Logger;
+import org.vertx.java.core.logging.impl.LoggerFactory;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
 public class Json {
 
-  public final static ObjectMapper mapper = new ObjectMapper();
+  private static final Logger log = LoggerFactory.getLogger(Json.class);
+
+  private final static ObjectMapper mapper = new ObjectMapper();
 
   public static String encode(Object obj) throws EncodeException {
     try {
       return mapper.writeValueAsString(obj);
     }
     catch (Exception e) {
-      throw new EncodeException("Failed to encode as JSON");
+      throw new EncodeException("Failed to encode as JSON: " + e.getMessage());
     }
   }
+
+  public static Object decodeValue(String str, Class clazz) throws DecodeException {
+    try {
+      return mapper.readValue(str, clazz);
+    }
+    catch (Exception e) {
+      throw new DecodeException("Failed to decode:" + e.getMessage());
+    }
+  }
+
 }

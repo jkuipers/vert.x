@@ -19,7 +19,7 @@ load('vertx.js')
 
 var tu = new TestUtils();
 
-var eb = vertx.EventBus;
+var eb = vertx.eventBus;
 
 var user = 'tim@localhost';
 
@@ -29,7 +29,7 @@ function testMailer() {
     from: user,
     to: user,
     subject: 'this is the subject',
-    body: 'this is the payload'
+    body: 'this is the body'
   }
 
   eb.send("test.mailer", msg, function(msg) {
@@ -43,7 +43,7 @@ function testMailerError() {
     from: "wdok wdqwd qd",
     to: user,
     subject: 'this is the subject',
-    body: 'this is the payload'
+    body: 'this is the body'
   }
 
   eb.send("test.mailer", msg, function(msg) {
@@ -55,7 +55,7 @@ function testMailerError() {
 tu.registerTests(this);
 
 var mailerConfig = {address: 'test.mailer'}
-var mailerID = vertx.deployWorkerVerticle('busmods/mailer.js', mailerConfig, 1, function() {
+var mailerID = vertx.deployWorkerVerticle('mailer', mailerConfig, 1, function() {
   tu.appReady();
 });
 

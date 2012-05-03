@@ -19,7 +19,7 @@ load('vertx.js')
 
 var tu = new TestUtils();
 
-var eb = vertx.EventBus;
+var eb = vertx.eventBus;
 
 function deleteAll() {
   eb.send('test.persistor', {
@@ -306,7 +306,7 @@ function testDelete() {
 
 tu.registerTests(this);
 var persistorConfig = {address: 'test.persistor', db_name: 'test_db'}
-vertx.deployWorkerVerticle('busmods/mongo_persistor.js', persistorConfig, 1, function() {
+vertx.deployWorkerVerticle('mongo-persistor', persistorConfig, 1, function() {
   deleteAll();
   tu.appReady();
 });

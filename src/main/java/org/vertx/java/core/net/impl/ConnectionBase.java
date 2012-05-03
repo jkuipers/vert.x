@@ -26,7 +26,6 @@ import org.jboss.netty.handler.ssl.SslHandler;
 import org.jboss.netty.handler.stream.ChunkedFile;
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.SimpleHandler;
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.impl.Context;
 import org.vertx.java.core.impl.VertxInternal;
 import org.vertx.java.core.logging.Logger;
@@ -47,16 +46,15 @@ public abstract class ConnectionBase {
 
   private static final Logger log = LoggerFactory.getLogger(ConnectionBase.class);
 
-  protected ConnectionBase(Channel channel, Context context, Thread th) {
+  protected ConnectionBase(VertxInternal vertx, Channel channel, Context context) {
+    this.vertx = vertx;
     this.channel = channel;
     this.context = context;
-    this.th = th;
   }
 
+  protected final VertxInternal vertx;
   protected final Channel channel;
   protected final Context context;
-  //For sanity checks
-  protected final Thread th;
 
   protected Handler<Exception> exceptionHandler;
   protected Handler<Void> closedHandler;
@@ -65,7 +63,6 @@ public abstract class ConnectionBase {
    * Pause the connection, see {@link ReadStream#pause}
    */
   public void pause() {
-    checkThread();
     channel.setReadable(false);
   }
 
@@ -73,7 +70,6 @@ public abstract class ConnectionBase {
    * Resume the connection, see {@link ReadStream#resume}
    */
   public void resume() {
-    checkThread();
     channel.setReadable(true);
   }
 
@@ -81,7 +77,6 @@ public abstract class ConnectionBase {
    * Set the max size for the write queue, see {@link WriteStream#setWriteQueueMaxSize}
    */
   public void setWriteQueueMaxSize(int size) {
-    checkThread();
     NioSocketChannelConfig conf = (NioSocketChannelConfig) channel.getConfig();
     conf.setWriteBufferLowWaterMark(size / 2);
     conf.setWriteBufferHighWaterMark(size);
@@ -91,7 +86,6 @@ public abstract class ConnectionBase {
    * Is the write queue full?, see {@link WriteStream#writeQueueFull}
    */
   public boolean writeQueueFull() {
-    checkThread();
     return !channel.isWritable();
   }
 
@@ -99,7 +93,6 @@ public abstract class ConnectionBase {
    * Close the connection
    */
   public void close() {
-    checkThread();
     channel.close();
   }
 
@@ -107,7 +100,6 @@ public abstract class ConnectionBase {
    * Set an exception handler on the connection
    */
   public void exceptionHandler(Handler<Exception> handler) {
-    checkThread();
     this.exceptionHandler = handler;
   }
 
@@ -115,7 +107,6 @@ public abstract class ConnectionBase {
    * Set a closed handler on the connection
    */
   public void closedHandler(Handler<Void> handler) {
-    checkThread();
     this.closedHandler = handler;
   }
 
@@ -151,7 +142,7 @@ public abstract class ConnectionBase {
     future.addListener(new ChannelFutureListener() {
       public void operationComplete(final ChannelFuture channelFuture) throws Exception {
         setContext();
-        Vertx.instance.nextTick(new SimpleHandler() {
+        vertx.runOnLoop(new SimpleHandler() {
           public void handle() {
             if (channelFuture.isSuccess()) {
               doneHandler.handle(null);
@@ -169,27 +160,19 @@ public abstract class ConnectionBase {
     });
   }
 
-  protected void checkThread() {
-    // All ops must always be invoked on same thread
-    if (Thread.currentThread() != th) {
-      throw new IllegalStateException("Invoked with wrong thread, actual: " + Thread.currentThread() + " expected: " + th);
-    }
-  }
-
   protected void setContext() {
-    checkThread();
-    VertxInternal.instance.setContext(context);
+    Context.setContext(context);
   }
 
   protected void handleHandlerException(Throwable t) {
-    VertxInternal.instance.reportException(t);
+    vertx.reportException(t);
   }
 
   protected boolean isSSL() {
     return channel.getPipeline().get(SslHandler.class) != null;
   }
 
-  protected void sendFile(File file) {
+  protected ChannelFuture sendFile(File file) {
     final RandomAccessFile raf;
     try {
       raf = new RandomAccessFile(file, "r");
@@ -211,8 +194,10 @@ public abstract class ConnectionBase {
           raf.close();
         }
       });
+      return writeFuture;
     } catch (IOException e) {
       handleException(e);
+      return null;
     }
   }
 }

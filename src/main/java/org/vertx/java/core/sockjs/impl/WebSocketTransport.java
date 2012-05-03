@@ -17,14 +17,16 @@
 package org.vertx.java.core.sockjs.impl;
 
 import org.vertx.java.core.Handler;
+import org.vertx.java.core.SimpleHandler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpServerRequest;
 import org.vertx.java.core.http.RouteMatcher;
 import org.vertx.java.core.http.WebSocket;
 import org.vertx.java.core.http.impl.WebSocketMatcher;
+import org.vertx.java.core.impl.VertxInternal;
+import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LoggerFactory;
-import org.vertx.java.core.sockjs.AppConfig;
 import org.vertx.java.core.sockjs.SockJSSocket;
 
 import java.util.Map;
@@ -36,36 +38,18 @@ class WebSocketTransport extends BaseTransport {
 
   private static final Logger log = LoggerFactory.getLogger(WebSocketTransport.class);
 
-  WebSocketTransport(WebSocketMatcher wsMatcher, RouteMatcher rm, String basePath, Map<String, Session> sessions,
-                     final AppConfig config,
+  WebSocketTransport(final VertxInternal vertx, WebSocketMatcher wsMatcher,
+                     RouteMatcher rm, String basePath, final Map<String, Session> sessions,
+                     final JsonObject config,
             final Handler<SockJSSocket> sockHandler) {
-    super(sessions, config);
+    super(vertx, sessions, config);
     String wsRE = basePath + COMMON_PATH_ELEMENT_RE + "websocket";
 
     wsMatcher.addRegEx(wsRE, new Handler<WebSocketMatcher.Match>() {
 
       public void handle(final WebSocketMatcher.Match match) {
-
-        final Session session = new Session(config.getHeartbeatPeriod(), sockHandler);
+        final Session session = new Session(vertx, sessions, (Long)config.getNumber("heartbeat_period"), sockHandler);
         session.register(new WebSocketListener(match.ws, session));
-
-        match.ws.dataHandler(new Handler<Buffer>() {
-          public void handle(Buffer data) {
-            if (!session.isClosed()) {
-              String msgs = data.toString();
-
-              if (msgs.equals("")) {
-                //Ignore empty frames
-              } else if ((msgs.startsWith("[\"") && msgs.endsWith("\"]")) ||
-                         (msgs.startsWith("\"") && msgs.endsWith("\""))) {
-                session.handleMessages(msgs);
-              } else {
-                //Invalid JSON - we close the connection
-                match.ws.close();
-              }
-            }
-          }
-        });
       }
     });
 
@@ -78,6 +62,7 @@ class WebSocketTransport extends BaseTransport {
 
     rm.allWithRegEx(wsRE, new Handler<HttpServerRequest>() {
       public void handle(HttpServerRequest request) {
+        request.response.headers().put("Allow", "GET");
         request.response.statusCode = 405;
         request.response.end();
       }
@@ -88,14 +73,47 @@ class WebSocketTransport extends BaseTransport {
 
     final WebSocket ws;
     final Session session;
+    boolean closed;
 
-    WebSocketListener(WebSocket ws, Session session) {
+    WebSocketListener(final WebSocket ws, final Session session) {
       this.ws = ws;
       this.session = session;
+      ws.dataHandler(new Handler<Buffer>() {
+        public void handle(Buffer data) {
+          if (!session.isClosed()) {
+            String msgs = data.toString();
+            if (msgs.equals("")) {
+              //Ignore empty frames
+            } else if ((msgs.startsWith("[\"") && msgs.endsWith("\"]")) ||
+                       (msgs.startsWith("\"") && msgs.endsWith("\""))) {
+              session.handleMessages(msgs);
+            } else {
+              //Invalid JSON - we close the connection
+              close();
+            }
+          }
+        }
+      });
+      ws.closedHandler(new SimpleHandler() {
+        public void handle() {
+          closed = true;
+          session.shutdown();
+        }
+      });
     }
 
-    public void sendFrame(final String payload) {
-      ws.writeTextFrame(payload);
+    public void sendFrame(final String body) {
+      if (!closed) {
+        ws.writeTextFrame(body);
+      }
+    }
+
+    public void close() {
+      if (!closed) {
+        ws.close();
+        session.shutdown();
+        closed = true;
+      }
     }
   }
 }

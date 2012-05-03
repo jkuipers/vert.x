@@ -3,7 +3,7 @@ package core.isolation
 import java.util.concurrent.atomic.AtomicInteger
 import org.vertx.groovy.framework.TestUtils
 
-tu = new TestUtils()
+tu = new TestUtils(vertx)
 tu.checkContext()
 
 class CounterHolder {
@@ -11,8 +11,8 @@ class CounterHolder {
 }
 
 void testIsolation() {
-  tu.azzert(CounterHolder.counter.incrementAndGet() == 1);
-  tu.testComplete();
+  tu.azzert(CounterHolder.counter.incrementAndGet() == 1)
+  tu.testComplete()
 }
 
 tu.registerTests(this)

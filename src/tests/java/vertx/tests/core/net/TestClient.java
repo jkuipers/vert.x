@@ -18,14 +18,11 @@ package vertx.tests.core.net;
 
 import org.vertx.java.core.Handler;
 import org.vertx.java.core.SimpleHandler;
-import org.vertx.java.core.Vertx;
 import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.eventbus.EventBus;
 import org.vertx.java.core.eventbus.Message;
 import org.vertx.java.core.net.NetClient;
 import org.vertx.java.core.net.NetServer;
 import org.vertx.java.core.net.NetSocket;
-import org.vertx.java.core.shareddata.SharedData;
 import org.vertx.java.framework.TestClientBase;
 import org.vertx.java.framework.TestUtils;
 import vertx.tests.core.http.TLSTestParams;
@@ -45,7 +42,7 @@ public class TestClient extends TestClientBase {
   @Override
   public void start() {
     super.start();
-    client = new NetClient();
+    client = vertx.createNetClient();
     tu.appReady();
   }
 
@@ -194,7 +191,7 @@ public class TestClient extends TestClientBase {
   }
 
   public void testServerDefaults() {
-    NetServer server = new NetServer();
+    NetServer server = vertx.createNetServer();
     tu.azzert(!server.isSSL());
     tu.azzert(server.getKeyStorePassword() == null);
     tu.azzert(server.getKeyStorePath() == null);
@@ -212,7 +209,7 @@ public class TestClient extends TestClientBase {
 
   public void testServerAttributes() {
 
-    NetServer server = new NetServer();
+    NetServer server = vertx.createNetServer();
 
     tu.azzert(server.setSSL(false) == server);
     tu.azzert(!server.isSSL());
@@ -308,8 +305,8 @@ public class TestClient extends TestClientBase {
         final int numChunks = 100;
         final int chunkSize = 100;
 
-        final Buffer received = Buffer.create(0);
-        final Buffer sent = Buffer.create(0);
+        final Buffer received = new Buffer();
+        final Buffer sent = new Buffer();
 
         socket.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer buffer) {
@@ -355,10 +352,10 @@ public class TestClient extends TestClientBase {
         tu.checkContext();
 
         final String str = TestUtils.randomUnicodeString(1000);
-        final Buffer sentBuff = enc == null ? Buffer.create(str) : Buffer.create(str, enc);
+        final Buffer sentBuff = enc == null ? new Buffer(str) : new Buffer(str, enc);
 
         //We will receive the buffer in fragments which may not be valid strings (since multi-byte chars)
-        final Buffer received = Buffer.create(0);
+        final Buffer received = new Buffer();
 
         socket.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer buffer) {
@@ -485,11 +482,11 @@ public class TestClient extends TestClientBase {
         tu.azzert(!sock.writeQueueFull());
         sock.setWriteQueueMaxSize(1000);
         final Buffer buff = TestUtils.generateRandomBuffer(10000);
-        Vertx.instance.setPeriodic(0, new Handler<Long>() {
+        vertx.setPeriodic(0, new Handler<Long>() {
           public void handle(Long id) {
             sock.write(buff);
             if (sock.writeQueueFull()) {
-              Vertx.instance.cancelTimer(id);
+              vertx.cancelTimer(id);
               sock.drainHandler(new SimpleHandler() {
                 public void handle() {
                   tu.checkContext();
@@ -499,7 +496,7 @@ public class TestClient extends TestClientBase {
               });
 
               // Tell the server to resume
-              EventBus.instance.send("server_resume", "");
+              vertx.eventBus().send("server_resume", "");
             }
           }
         });
@@ -524,7 +521,7 @@ public class TestClient extends TestClientBase {
   public void testWriteWithCompletion() {
     final int numSends = 10;
     final int sendSize = 100;
-    final Buffer sentBuff = Buffer.create(0);
+    final Buffer sentBuff = new Buffer();
 
     client.connect(1234, new Handler<NetSocket>() {
       public void handle(NetSocket sock) {
@@ -613,7 +610,7 @@ public class TestClient extends TestClientBase {
   }
 
   void tls() {
-    TLSTestParams params = TLSTestParams.deserialize(SharedData.instance.<String, byte[]>getMap("TLSTest").get("params"));
+    TLSTestParams params = TLSTestParams.deserialize(vertx.sharedData().<String, byte[]>getMap("TLSTest").get("params"));
 
     client.setSSL(true);
 
@@ -652,8 +649,8 @@ public class TestClient extends TestClientBase {
         final int numChunks = 100;
         final int chunkSize = 100;
 
-        final Buffer received = Buffer.create(0);
-        final Buffer sent = Buffer.create(0);
+        final Buffer received = new Buffer();
+        final Buffer sent = new Buffer();
 
         socket.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer buffer) {
@@ -678,7 +675,7 @@ public class TestClient extends TestClientBase {
 
   public void testSharedServersMultipleInstances1() {
     // Create a bunch of connections
-    final int numConnections = SharedData.instance.<String, Integer>getMap("params").get("numConnections");
+    final int numConnections = vertx.sharedData().<String, Integer>getMap("params").get("numConnections");
     final AtomicInteger counter = new AtomicInteger(0);
     for (int i = 0; i < numConnections; i++) {
       client.connect(1234, "localhost", new Handler<NetSocket>() {
@@ -781,11 +778,11 @@ public class TestClient extends TestClientBase {
         sock.resume();
       }
     };
-    EventBus.instance.registerHandler("client_resume", resumeHandler);
+    vertx.eventBus().registerHandler("client_resume", resumeHandler);
     sock.closedHandler(new SimpleHandler() {
       public void handle() {
         tu.checkContext();
-        EventBus.instance.unregisterHandler("client_resume", resumeHandler);
+        vertx.eventBus().unregisterHandler("client_resume", resumeHandler);
       }
     });
   }

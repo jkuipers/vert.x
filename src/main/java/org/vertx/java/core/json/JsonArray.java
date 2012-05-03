@@ -47,11 +47,7 @@ public class JsonArray implements Iterable<Object> {
   }
 
   public JsonArray(String jsonString) {
-    try {
-      list = Json.mapper.readValue(jsonString, List.class);
-      } catch (Exception e) {
-      throw new DecodeException("Failed to decode JSON array from string: " + jsonString);
-    }
+    list = (List)Json.decodeValue(jsonString, List.class);
   }
 
   public JsonArray addString(String str) {
@@ -124,8 +120,13 @@ public class JsonArray implements Iterable<Object> {
 
       @Override
       public void remove() {
+        iter.remove();
       }
     };
+  }
+
+  public boolean contains(Object value) {
+    return list.contains(value);
   }
 
   public String encode() throws EncodeException {
@@ -149,5 +150,25 @@ public class JsonArray implements Iterable<Object> {
       }
     }
     return true;
+  }
+
+  public Object[] toArray() {
+    return convertList(list);
+  }
+
+  static Object[] convertList(List list) {
+    Object[] arr = new Object[list.size()];
+    int index = 0;
+    for (Object obj: list) {
+      if (obj instanceof Map) {
+        arr[index] = JsonObject.convertMap((Map)obj);
+      } else if (obj instanceof List) {
+        arr[index] = convertList((List)obj);
+      } else {
+        arr[index] = obj;
+      }
+      index++;
+    }
+    return arr;
   }
 }

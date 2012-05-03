@@ -23,10 +23,8 @@ import org.vertx.java.core.SimpleHandler;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.file.AsyncFile;
 import org.vertx.java.core.file.FileProps;
-import org.vertx.java.core.file.FileSystem;
 import org.vertx.java.core.file.FileSystemException;
 import org.vertx.java.core.file.FileSystemProps;
-import org.vertx.java.core.shareddata.SharedData;
 import org.vertx.java.core.streams.Pump;
 import org.vertx.java.core.streams.ReadStream;
 import org.vertx.java.core.streams.WriteStream;
@@ -60,10 +58,10 @@ public class TestClient extends TestClientBase {
   @Override
   public void start() {
     super.start();
-    params = SharedData.instance.getMap("params");
+    params = vertx.sharedData().getMap("params");
     java.nio.file.FileSystem fs = FileSystems.getDefault();
     pathSep = fs.getSeparator();
-    params = SharedData.instance.getMap("params");
+    params = vertx.sharedData().getMap("params");
 
     testDir = new File(TEST_DIR);
     if (testDir.exists()) {
@@ -185,9 +183,9 @@ public class TestClient extends TestClientBase {
                         final boolean shouldPass, final Handler<Void> afterOK) {
     AsyncResultHandler<Void> handler = createHandler(shouldPass, afterOK);
     if (recursive) {
-      FileSystem.instance.copy(TEST_DIR + pathSep + source, TEST_DIR + pathSep + target, true, handler);
+      vertx.fileSystem().copy(TEST_DIR + pathSep + source, TEST_DIR + pathSep + target, true, handler);
     } else {
-      FileSystem.instance.copy(TEST_DIR + pathSep + source, TEST_DIR + pathSep + target, handler);
+      vertx.fileSystem().copy(TEST_DIR + pathSep + source, TEST_DIR + pathSep + target, handler);
     }
   }
 
@@ -265,7 +263,7 @@ public class TestClient extends TestClientBase {
   }
 
   private void testMove(final String source, final String target, final boolean shouldPass, final Handler<Void> afterOK) throws Exception {
-    FileSystem.instance.move(TEST_DIR + pathSep + source, TEST_DIR + pathSep + target, createHandler(shouldPass, afterOK));
+    vertx.fileSystem().move(TEST_DIR + pathSep + source, TEST_DIR + pathSep + target, createHandler(shouldPass, afterOK));
   }
 
   public void testTruncate() throws Exception {
@@ -289,7 +287,7 @@ public class TestClient extends TestClientBase {
 
   private void testTruncate(final String file, final long truncatedLen, final boolean shouldPass,
                             final Handler<Void> afterOK) throws Exception {
-    FileSystem.instance.truncate(TEST_DIR + pathSep + file, truncatedLen, createHandler(shouldPass, afterOK));
+    vertx.fileSystem().truncate(TEST_DIR + pathSep + file, truncatedLen, createHandler(shouldPass, afterOK));
   }
 
   public void testChmodNonRecursive1() throws Exception {
@@ -386,9 +384,9 @@ public class TestClient extends TestClientBase {
     }
     AsyncResultHandler<Void> handler = createHandler(shouldPass, afterOK);
     if (dirPerms != null) {
-      FileSystem.instance.chmod(TEST_DIR + pathSep + file, perms, dirPerms, handler);
+      vertx.fileSystem().chmod(TEST_DIR + pathSep + file, perms, dirPerms, handler);
     } else {
-      FileSystem.instance.chmod(TEST_DIR + pathSep + file, perms, handler);
+      vertx.fileSystem().chmod(TEST_DIR + pathSep + file, perms, handler);
     }
   }
   
@@ -490,9 +488,9 @@ public class TestClient extends TestClientBase {
       }
     };
     if (link) {
-      FileSystem.instance.lprops(TEST_DIR + pathSep + fileName, handler);
+      vertx.fileSystem().lprops(TEST_DIR + pathSep + fileName, handler);
     } else {
-      FileSystem.instance.props(TEST_DIR + pathSep + fileName, handler);
+      vertx.fileSystem().props(TEST_DIR + pathSep + fileName, handler);
     }
   }
 
@@ -527,9 +525,9 @@ public class TestClient extends TestClientBase {
     AsyncResultHandler<Void> handler = createHandler(shouldPass, afterOK);
     if (symbolic) {
       // Symlink is relative
-      FileSystem.instance.symlink(TEST_DIR + pathSep + from, to, handler);
+      vertx.fileSystem().symlink(TEST_DIR + pathSep + from, to, handler);
     } else {
-      FileSystem.instance.link(TEST_DIR + pathSep + from, TEST_DIR + pathSep + to, handler);
+      vertx.fileSystem().link(TEST_DIR + pathSep + from, TEST_DIR + pathSep + to, handler);
     }
   }
 
@@ -545,7 +543,7 @@ public class TestClient extends TestClientBase {
         tu.azzert(!fileExists(linkName));
       }
     });
-    FileSystem.instance.unlink(TEST_DIR + pathSep + linkName, handler);
+    vertx.fileSystem().unlink(TEST_DIR + pathSep + linkName, handler);
   }
 
   public void testReadSymLink() throws Exception {
@@ -565,7 +563,7 @@ public class TestClient extends TestClientBase {
         }
       }
     };
-    FileSystem.instance.readSymlink(TEST_DIR + pathSep + linkName, handler);
+    vertx.fileSystem().readSymlink(TEST_DIR + pathSep + linkName, handler);
   }
 
   public void testSimpleDelete() throws Exception {
@@ -626,9 +624,9 @@ public class TestClient extends TestClientBase {
                           final Handler<Void> afterOK) throws Exception {
     AsyncResultHandler<Void> handler = createHandler(shouldPass, afterOK);
     if (recursive) {
-      FileSystem.instance.delete(TEST_DIR + pathSep + fileName, recursive, handler);
+      vertx.fileSystem().delete(TEST_DIR + pathSep + fileName, recursive, handler);
     } else {
-      FileSystem.instance.delete(TEST_DIR + pathSep + fileName, handler);
+      vertx.fileSystem().delete(TEST_DIR + pathSep + fileName, handler);
     }
   }
 
@@ -688,15 +686,15 @@ public class TestClient extends TestClientBase {
     AsyncResultHandler<Void> handler = createHandler(shouldPass, afterOK);
     if (createParents) {
       if (perms != null) {
-        FileSystem.instance.mkdir(TEST_DIR + pathSep + dirName, perms, createParents, handler);
+        vertx.fileSystem().mkdir(TEST_DIR + pathSep + dirName, perms, createParents, handler);
       } else {
-        FileSystem.instance.mkdir(TEST_DIR + pathSep + dirName, createParents, handler);
+        vertx.fileSystem().mkdir(TEST_DIR + pathSep + dirName, createParents, handler);
       }
     } else {
       if (perms != null) {
-        FileSystem.instance.mkdir(TEST_DIR + pathSep + dirName, perms, handler);
+        vertx.fileSystem().mkdir(TEST_DIR + pathSep + dirName, perms, handler);
       } else {
-        FileSystem.instance.mkdir(TEST_DIR + pathSep + dirName, handler);
+        vertx.fileSystem().mkdir(TEST_DIR + pathSep + dirName, handler);
       }
     }
   }
@@ -790,9 +788,9 @@ public class TestClient extends TestClientBase {
       }
     };
     if (filter == null) {
-      FileSystem.instance.readDir(TEST_DIR + pathSep + dirName, handler);
+      vertx.fileSystem().readDir(TEST_DIR + pathSep + dirName, handler);
     } else {
-      FileSystem.instance.readDir(TEST_DIR + pathSep + dirName, filter, handler);
+      vertx.fileSystem().readDir(TEST_DIR + pathSep + dirName, filter, handler);
     }
   }
 
@@ -806,17 +804,17 @@ public class TestClient extends TestClientBase {
         if (ar.exception != null) {
           tu.exception(ar.exception, "failed to read");
         } else {
-          tu.azzert(TestUtils.buffersEqual(Buffer.create(content), ar.result));
+          tu.azzert(TestUtils.buffersEqual(new Buffer(content), ar.result));
           tu.testComplete();
         }
       }
     };
-    FileSystem.instance.readFile(TEST_DIR + pathSep + fileName, handler);
+    vertx.fileSystem().readFile(TEST_DIR + pathSep + fileName, handler);
   }
 
   public void testWriteFile() throws Exception {
     final byte[] content = TestUtils.generateRandomByteArray(1000);
-    final Buffer buff = Buffer.create(content);
+    final Buffer buff = new Buffer(content);
     final String fileName = "some-file.dat";
     AsyncResultHandler<Void> handler = new AsyncResultHandler<Void>() {
       public void handle(AsyncResult<Void> ar) {
@@ -833,12 +831,12 @@ public class TestClient extends TestClientBase {
             tu.exception(e, "failed to read");
             return;
           }
-          tu.azzert(TestUtils.buffersEqual(buff, Buffer.create(readBytes)));
+          tu.azzert(TestUtils.buffersEqual(buff, new Buffer(readBytes)));
           tu.testComplete();
         }
       }
     };
-    FileSystem.instance.writeFile(TEST_DIR + pathSep + fileName, buff, handler);
+    vertx.fileSystem().writeFile(TEST_DIR + pathSep + fileName, buff, handler);
   }
 
   public void testWriteAsync() throws Exception {
@@ -847,15 +845,15 @@ public class TestClient extends TestClientBase {
     final int chunks = 10;
 
     byte[] content = TestUtils.generateRandomByteArray(chunkSize * chunks);
-    final Buffer buff = Buffer.create(content);
+    final Buffer buff = new Buffer(content);
 
-    FileSystem.instance.open(TEST_DIR + pathSep + fileName, null, false, true, true, true, new AsyncResultHandler<AsyncFile>() {
+    vertx.fileSystem().open(TEST_DIR + pathSep + fileName, null, false, true, true, true, new AsyncResultHandler<AsyncFile>() {
       int count;
       public void handle(AsyncResult<AsyncFile> ar) {
         tu.checkContext();
         if (ar.exception == null) {
           for (int i = 0; i < chunks; i++) {
-            Buffer chunk = buff.copy(i * chunkSize, (i + 1) * chunkSize);
+            Buffer chunk = buff.getBuffer(i * chunkSize, (i + 1) * chunkSize);
             tu.azzert(chunk.length() == chunkSize);
             ar.result.write(chunk, i * chunkSize, new AsyncResultHandler<Void>() {
               public void handle(AsyncResult<Void> ar) {
@@ -869,7 +867,7 @@ public class TestClient extends TestClientBase {
                       tu.exception(e, "Failed to read file");
                       return;
                     }
-                    Buffer read = Buffer.create(readBytes);
+                    Buffer read = new Buffer(readBytes);
                     tu.azzert(TestUtils.buffersEqual(buff, read));
                     tu.testComplete();
                   }
@@ -891,14 +889,14 @@ public class TestClient extends TestClientBase {
     final int chunkSize = 1000;
     final int chunks = 10;
     byte[] content = TestUtils.generateRandomByteArray(chunkSize * chunks);
-    final Buffer expected = Buffer.create(content);
+    final Buffer expected = new Buffer(content);
     createFile(fileName, content);
-    FileSystem.instance.open(TEST_DIR + pathSep + fileName, null, true, false, false, new AsyncResultHandler<AsyncFile>() {
+    vertx.fileSystem().open(TEST_DIR + pathSep + fileName, null, true, false, false, new AsyncResultHandler<AsyncFile>() {
       int reads;
       public void handle(AsyncResult<AsyncFile> ar) {
         tu.checkContext();
         if (ar.exception == null) {
-          final Buffer buff = Buffer.create(chunks * chunkSize);
+          final Buffer buff = new Buffer(chunks * chunkSize);
           for (int i = 0; i < chunks; i++) {
             ar.result.read(buff, i * chunkSize, i * chunkSize, chunkSize, new AsyncResultHandler<Buffer>() {
               public void handle(AsyncResult<Buffer> ar) {
@@ -926,8 +924,8 @@ public class TestClient extends TestClientBase {
     final int chunkSize = 1000;
     final int chunks = 10;
     byte[] content = TestUtils.generateRandomByteArray(chunkSize * chunks);
-    final Buffer buff = Buffer.create(content);
-    FileSystem.instance.open(TEST_DIR + pathSep + fileName, new AsyncResultHandler<AsyncFile>() {
+    final Buffer buff = new Buffer(content);
+    vertx.fileSystem().open(TEST_DIR + pathSep + fileName, new AsyncResultHandler<AsyncFile>() {
       public void handle(AsyncResult<AsyncFile> ar) {
         tu.checkContext();
         if (ar.exception == null) {
@@ -941,7 +939,7 @@ public class TestClient extends TestClientBase {
           });
 
           for (int i = 0; i < chunks; i++) {
-            Buffer chunk = buff.copy(i * chunkSize, (i + 1) * chunkSize);
+            Buffer chunk = buff.getBuffer(i * chunkSize, (i + 1) * chunkSize);
             tu.azzert(chunk.length() == chunkSize);
             ws.writeBuffer(chunk);
           }
@@ -960,7 +958,7 @@ public class TestClient extends TestClientBase {
                   tu.exception(e, "failed to read");
                   return;
                 }
-                tu.azzert(TestUtils.buffersEqual(buff, Buffer.create(readBytes)));
+                tu.azzert(TestUtils.buffersEqual(buff, new Buffer(readBytes)));
                 tu.testComplete();
               }
             }
@@ -979,12 +977,12 @@ public class TestClient extends TestClientBase {
     final byte[] content = TestUtils.generateRandomByteArray(chunkSize * chunks);
     createFile(fileName, content);
 
-    FileSystem.instance.open(TEST_DIR + pathSep + fileName, null, true, false, false, new AsyncResultHandler<AsyncFile>() {
+    vertx.fileSystem().open(TEST_DIR + pathSep + fileName, null, true, false, false, new AsyncResultHandler<AsyncFile>() {
       public void handle(AsyncResult<AsyncFile> ar) {
         tu.checkContext();
         if (ar.exception == null) {
           ReadStream rs = ar.result.getReadStream();
-          final Buffer buff = Buffer.create(0);
+          final Buffer buff = new Buffer();
 
           rs.dataHandler(new Handler<Buffer>() {
             public void handle(Buffer data) {
@@ -1003,7 +1001,7 @@ public class TestClient extends TestClientBase {
           rs.endHandler(new SimpleHandler() {
             public void handle() {
               tu.checkContext();
-              tu.azzert(TestUtils.buffersEqual(buff, Buffer.create(content)));
+              tu.azzert(TestUtils.buffersEqual(buff, new Buffer(content)));
               tu.testComplete();
             }
           });
@@ -1023,21 +1021,21 @@ public class TestClient extends TestClientBase {
     final byte[] content = TestUtils.generateRandomByteArray(fileSize);
     createFile(fileName1, content);
 
-    FileSystem.instance.open(TEST_DIR + pathSep + fileName1, null, true, false, false, new AsyncResultHandler<AsyncFile>() {
+    vertx.fileSystem().open(TEST_DIR + pathSep + fileName1, null, true, false, false, new AsyncResultHandler<AsyncFile>() {
       public void handle(AsyncResult<AsyncFile> ar) {
         tu.checkContext();
         if (ar.exception == null) {
           final ReadStream rs = ar.result.getReadStream();
 
           //Open file for writing
-          FileSystem.instance.open(TEST_DIR + pathSep + fileName2, null, true, true, true, new AsyncResultHandler<AsyncFile>() {
+          vertx.fileSystem().open(TEST_DIR + pathSep + fileName2, null, true, true, true, new AsyncResultHandler<AsyncFile>() {
 
             public void handle(final AsyncResult<AsyncFile> ar) {
               tu.checkContext();
               if (ar.exception == null) {
 
                 WriteStream ws = ar.result.getWriteStream();
-                Pump p = new Pump(rs, ws);
+                Pump p = Pump.createPump(rs, ws);
                 p.start();
                 rs.endHandler(new SimpleHandler() {
                   public void handle() {
@@ -1057,7 +1055,7 @@ public class TestClient extends TestClientBase {
                             tu.exception(e, "failed to read");
                             return;
                           }
-                          tu.azzert(TestUtils.buffersEqual(Buffer.create(content), Buffer.create(readBytes)));
+                          tu.azzert(TestUtils.buffersEqual(new Buffer(content), new Buffer(readBytes)));
                           tu.testComplete();
                         }
                       }
@@ -1116,9 +1114,9 @@ public class TestClient extends TestClientBase {
       }
     };
     if (perms != null) {
-      FileSystem.instance.createFile(TEST_DIR + pathSep + fileName, perms, handler);
+      vertx.fileSystem().createFile(TEST_DIR + pathSep + fileName, perms, handler);
     } else {
-      FileSystem.instance.createFile(TEST_DIR + pathSep + fileName, handler);
+      vertx.fileSystem().createFile(TEST_DIR + pathSep + fileName, handler);
     }
   }
 
@@ -1151,7 +1149,7 @@ public class TestClient extends TestClientBase {
         }
       }
     };
-    FileSystem.instance.exists(TEST_DIR + pathSep + fileName, handler);
+    vertx.fileSystem().exists(TEST_DIR + pathSep + fileName, handler);
   }
 
   public void testFSProps() throws Exception {
@@ -1182,7 +1180,7 @@ public class TestClient extends TestClientBase {
         }
       }
     };
-    FileSystem.instance.fsProps(TEST_DIR + pathSep + fileName, handler);
+    vertx.fileSystem().fsProps(TEST_DIR + pathSep + fileName, handler);
   }
 
   private AsyncResultHandler<Void> createHandler(final boolean shouldPass, final Handler<Void> afterOK) {

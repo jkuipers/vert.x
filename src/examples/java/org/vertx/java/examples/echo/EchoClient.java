@@ -17,20 +17,19 @@
 package org.vertx.java.examples.echo;
 
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.Verticle;
 import org.vertx.java.core.buffer.Buffer;
-import org.vertx.java.core.net.NetClient;
 import org.vertx.java.core.net.NetSocket;
+import org.vertx.java.deploy.Verticle;
 
-public class EchoClient implements Verticle {
+public class EchoClient extends Verticle {
 
   public void start() {
-    new NetClient().connect(1234, "localhost", new Handler<NetSocket>() {
+    vertx.createNetClient().connect(1234, "localhost", new Handler<NetSocket>() {
       public void handle(NetSocket socket) {
 
         socket.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer buffer) {
-            System.out.println("Net client receiving: " + buffer.toString("UTF-8"));
+            System.out.println("Net client receiving: " + buffer);
           }
         });
 
@@ -38,12 +37,9 @@ public class EchoClient implements Verticle {
         for (int i = 0; i < 10; i++) {
           String str = "hello" + i + "\n";
           System.out.print("Net client sending: " + str);
-          socket.write(Buffer.create(str));
+          socket.write(new Buffer(str));
         }
       }
     });
-  }
-
-  public void stop() {
   }
 }

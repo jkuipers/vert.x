@@ -17,26 +17,28 @@
 package org.vertx.java.examples.sockjs;
 
 import org.vertx.java.core.Handler;
-import org.vertx.java.core.Verticle;
 import org.vertx.java.core.buffer.Buffer;
 import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.HttpServerRequest;
-import org.vertx.java.core.logging.Logger;
-import org.vertx.java.core.logging.impl.LoggerFactory;
-import org.vertx.java.core.sockjs.AppConfig;
+import org.vertx.java.core.json.JsonObject;
 import org.vertx.java.core.sockjs.SockJSServer;
 import org.vertx.java.core.sockjs.SockJSSocket;
+import org.vertx.java.deploy.Verticle;
 
-public class SockJSExample implements Verticle {
-
-  private HttpServer server;
+public class SockJSExample extends Verticle {
 
   public void start() {
-    server = new HttpServer();
+    HttpServer server = vertx.createHttpServer();
 
-    SockJSServer sockServer = new SockJSServer(server);
+    server.requestHandler(new Handler<HttpServerRequest>() {
+      public void handle(HttpServerRequest req) {
+        if (req.path.equals("/")) req.response.sendFile("sockjs/index.html"); // Serve the html
+      }
+    });
 
-    sockServer.installApp(new AppConfig().setPrefix("/testapp"), new Handler<SockJSSocket>() {
+    SockJSServer sockServer = vertx.createSockJSServer(server);
+
+    sockServer.installApp(new JsonObject().putString("prefix", "/testapp"), new Handler<SockJSSocket>() {
       public void handle(final SockJSSocket sock) {
         sock.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer data) {
@@ -46,15 +48,6 @@ public class SockJSExample implements Verticle {
       }
     });
 
-    server.requestHandler(new Handler<HttpServerRequest>() {
-      public void handle(HttpServerRequest req) {
-        if (req.path.equals("/")) req.response.sendFile("sockjs/index.html"); // Serve the html
-      }
-    }).listen(8080);
-
-  }
-
-  public void stop() {
-    server.close();
+    server.listen(8080);
   }
 }

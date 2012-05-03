@@ -29,11 +29,11 @@ import org.jboss.netty.handler.codec.http.HttpRequest;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
+import org.vertx.java.core.AsyncResult;
+import org.vertx.java.core.AsyncResultHandler;
 import org.vertx.java.core.http.HttpClientRequest;
 import org.vertx.java.core.http.HttpClientResponse;
 import org.vertx.java.core.http.impl.ws.Handshake;
-import org.vertx.java.core.impl.CompletionHandler;
-import org.vertx.java.core.impl.SimpleFuture;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LoggerFactory;
 
@@ -44,12 +44,14 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author Michael Dobozy
  * @author Bob McWhirter
+ *
+ * Adapted by Tim Fox
  */
 public class Handshake08 implements Handshake {
 
   private static Logger log = LoggerFactory.getLogger(Handshake08.class);
 
-  protected WebSocketChallenge08 challenge;
+  protected final WebSocketChallenge08 challenge;
 
   protected String getWebSocketLocation(HttpRequest request) {
     return "ws://" + request.getHeader(HttpHeaders.Names.HOST) + request.getUri();
@@ -70,23 +72,24 @@ public class Handshake08 implements Handshake {
   }
 
   public void fillInRequest(HttpClientRequest req, String hostHeader) throws Exception {
-    req.putHeader("Sec-WebSocket-Version", "7");
-    req.putHeader(HttpHeaders.Names.CONNECTION, "Upgrade");
-    req.putHeader(HttpHeaders.Names.UPGRADE, "WebSocket");
-    req.putHeader(HttpHeaders.Names.HOST, hostHeader);
-    req.putHeader("Sec-WebSocket-Key", this.challenge.getNonceBase64());
+    req.headers().put("Sec-WebSocket-Version", "8");
+    req.headers().put(HttpHeaders.Names.CONNECTION, "Upgrade");
+    req.headers().put(HttpHeaders.Names.UPGRADE, "WebSocket");
+    req.headers().put(HttpHeaders.Names.HOST, hostHeader);
+    req.headers().put("Sec-WebSocket-Key", this.challenge.getNonceBase64());
   }
 
-  public HttpResponse generateResponse(HttpRequest request) throws Exception {
+  public HttpResponse generateResponse(HttpRequest request, String serverOrigin) throws Exception {
     HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1,
-        new HttpResponseStatus(101, "Web Socket Protocol Handshake - IETF-07"));
+        new HttpResponseStatus(101, "Switching Protocols"));
     response.addHeader(HttpHeaders.Names.UPGRADE, "WebSocket");
 
     response.addHeader(HttpHeaders.Names.CONNECTION, "Upgrade");
     String origin = request.getHeader(Names.ORIGIN);
-    if (origin != null) {
-      response.addHeader(Names.SEC_WEBSOCKET_ORIGIN, origin);
+    if (origin == null) {
+      origin = serverOrigin;
     }
+    response.addHeader(Names.SEC_WEBSOCKET_ORIGIN, origin);
     response.addHeader(Names.SEC_WEBSOCKET_LOCATION, getWebSocketLocation(request));
     String protocol = request.getHeader(Names.SEC_WEBSOCKET_PROTOCOL);
     if (protocol != null) {
@@ -99,15 +102,15 @@ public class Handshake08 implements Handshake {
     return response;
   }
 
-  public void onComplete(HttpClientResponse response, final CompletionHandler<Void> doneHandler) throws Exception {
-    String challengeResponse = response.getHeader("Sec-WebSocket-Accept");
-    SimpleFuture<Void> fut = new SimpleFuture<>();
+  public void onComplete(HttpClientResponse response, final AsyncResultHandler<Void> doneHandler) throws Exception {
+    String challengeResponse = response.headers().get("Sec-WebSocket-Accept");
+    AsyncResult<Void> res;
     if (challenge.verify(challengeResponse)) {
-      fut.setResult(null);
+      res = new AsyncResult<>((Void)null);
     } else {
-      fut.setException(new Exception("Invalid websocket handshake response"));
+      res = new AsyncResult<>(new Exception("Invalid websocket handshake response"));
     }
-    doneHandler.handle(fut);
+    doneHandler.handle(res);
   }
 
   public ChannelHandler getEncoder(boolean server) {

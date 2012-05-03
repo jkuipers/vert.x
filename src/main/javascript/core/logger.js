@@ -17,5 +17,19 @@
 var vertx = vertx || {};
 
 if (!vertx.logger) {
-  vertx.logger = org.vertx.java.core.Vertx.instance.getLogger();
+  vertx.logger = org.vertx.java.deploy.impl.VertxLocator.container.getLogger();
+
+  // Add a console object which will be familiar to JavaScript devs
+  var console = {
+    // TODO this should take varargs and allow formatting a la sprintf
+    log: function(msg) {
+      stdout.println(msg);
+    },
+    warn: function(msg) {
+      stderr.println(msg);
+    },
+    error: function(msg) {
+      stderr.println(msg);
+    }
+  };
 }

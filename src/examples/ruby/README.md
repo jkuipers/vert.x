@@ -13,7 +13,7 @@ you can run vertx is application server mode. See the wiki for more information)
 
 (for full help on deploying just type vertx from the command line)
 
-(from this directory)
+(all examples should be run from this directory unless otherwise stated (e.g. the webapp example))
 
 vertx run <example script name>
 
@@ -233,15 +233,19 @@ First connect, then try subscribing and sending messages and see how the separat
 
 ## Web application
 
-This is a full end-end "real-time" web appplication which has a modern JavaScript client side MVVM application that communicates with a set of verticle at the back end via the vert.x event bus.
+This is a full end-end "real-time" web appplication which has a modern JavaScript client side MVVM application that communicates via the event bus with a persistor.
 
 It's the same application from the tutorial.
 
 You will need an instance of MongoDB server (with default settings) running on localhost.
 
-To run it simply `cd` into the webapp directory and `vertx run app.rb`
+To run it simply `cd` into the webapp directory and `vertx run App.groovy`
 
-Then point your browser at https://localhost:8080 and start shopping!
+To see log output set the following in `conf/logging.properties`
+
+    org.vertx.level=FINE
+
+Then point your browser at https://localhost:8080 and start shopping! (Note it's https not http!)
 
 To fully understand this example please follow the web app tutorial on the website
 

@@ -15,22 +15,23 @@
  */
 package org.vertx.java.framework;
 
-import org.vertx.java.core.Verticle;
 import org.vertx.java.core.logging.Logger;
 import org.vertx.java.core.logging.impl.LoggerFactory;
+import org.vertx.java.deploy.Verticle;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-public abstract class TestClientBase implements Verticle {
+public abstract class TestClientBase extends Verticle {
 
   private static final Logger log = LoggerFactory.getLogger(TestClientBase.class);
 
-  protected TestUtils tu = new TestUtils();
+  protected TestUtils tu;
 
   private boolean stopped;
 
   public void start() {
+    tu = new TestUtils(vertx);
     tu.registerTests(this);
   }
 

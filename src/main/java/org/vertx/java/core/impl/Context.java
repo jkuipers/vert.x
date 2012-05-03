@@ -16,14 +16,105 @@
 
 package org.vertx.java.core.impl;
 
+import org.vertx.java.core.logging.Logger;
+import org.vertx.java.core.logging.impl.LoggerFactory;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executor;
+
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
  */
-public interface Context {
+public abstract class Context {
 
-  void execute(Runnable task);
+  private static final Logger log = LoggerFactory.getLogger(Context.class);
 
-  void setExtraData(Object data);
+  private static final ThreadLocal<Context> contextTL = new ThreadLocal<>();
 
-  Object getExtraData();
+  private DeploymentHandle deploymentContext;
+  private Path pathAdjustment;
+
+  private List<Runnable> closeHooks;
+
+  protected Context(Executor bgExec) {
+    this.bgExec = bgExec;
+  }
+
+  private final Executor bgExec;
+
+  public static void setContext(Context context) {
+    contextTL.set(context);
+  }
+
+  public static Context getContext() {
+    return contextTL.get();
+  }
+
+  public void setDeploymentHandle(DeploymentHandle deploymentHandle) {
+    this.deploymentContext = deploymentHandle;
+  }
+
+  public DeploymentHandle getDeploymentHandle() {
+    return deploymentContext;
+  }
+
+  public Path getPathAdjustment() {
+    return pathAdjustment;
+  }
+
+  public void setPathAdjustment(Path pathAdjustment) {
+    this.pathAdjustment = pathAdjustment;
+  }
+
+  public void reportException(Throwable t) {
+    if (deploymentContext != null) {
+      deploymentContext.reportException(t);
+    } else {
+      log.error("Unhandled exception", t);
+    }
+  }
+
+  public void addCloseHook(Runnable hook) {
+    if (closeHooks == null) {
+      closeHooks = new ArrayList<>();
+    }
+    closeHooks.add(hook);
+  }
+
+  public void runCloseHooks() {
+    if (closeHooks != null) {
+      for (Runnable hook: closeHooks) {
+        try {
+          hook.run();
+        } catch (Throwable t) {
+          reportException(t);
+        }
+      }
+    }
+  }
+
+  public abstract void execute(Runnable handler);
+
+  public void executeOnWorker(final Runnable task) {
+    bgExec.execute(new Runnable() {
+      public void run() {
+        wrapTask(task).run();
+      }
+    });
+  }
+
+  protected Runnable wrapTask(final Runnable task) {
+    return new Runnable() {
+      public void run() {
+        try {
+          setContext(Context.this);
+          task.run();
+        } catch (Throwable t) {
+          reportException(t);
+        }
+      }
+    };
+  }
 }

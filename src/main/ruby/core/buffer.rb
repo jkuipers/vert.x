@@ -22,8 +22,6 @@ module Vertx
   # Buffers are used in many places in vert.x, for example to read/write data to/from {NetSocket}, {AsyncFile},
   # {WebSocket}, {HttpClientRequest}, {HttpClientResponse}, {HttpServerRequest}, {HttpServerResponse} etc.
   #
-  # Buffer instances should always be created using the factory methods {Buffer.create} and {Buffer.create_from_str}.
-  #
   # There are two ways to write data to a Buffer: The first method involves methods that take the form set_XXX.
   # These methods write data into the buffer starting at the specified position. The position does not have to be inside data that
   # has already been written to the buffer; the buffer will automatically expand to encompass the position plus any data that needs
@@ -44,16 +42,17 @@ module Vertx
     end
 
     # Creates a new empty buffer. The {#length} of the buffer immediately after creation will be zero.
-    # @param initial_size_hint [FixNum] is a hint to the system for how much memory to initially allocate to the buffer to prevent excessive automatic re-allocations as data is written to it.
-    def Buffer.create(initial_size_hint)
-      Buffer.new(org.vertx.java.core.buffer.Buffer.create(initial_size_hint))
+    # @param initial_size_hint [FixNum] is a hint to the system for how much memory
+    # to initially allocate to the buffer to prevent excessive automatic re-allocations as data is written to it.
+    def Buffer.create(initial_size_hint = 0)
+      Buffer.new(org.vertx.java.core.buffer.Buffer.new(initial_size_hint))
     end
 
     # Create a new Buffer from a String
     # @param str [String] The String to encode into the Buffer
     # @param enc [String] Encoding to use. Defaults to "UTF-8"
     def Buffer.create_from_str(str, enc = "UTF-8")
-      Buffer.new(org.vertx.java.core.buffer.Buffer.create(str, enc))
+      Buffer.new(org.vertx.java.core.buffer.Buffer.new(str, enc))
     end
 
     # Return a String representation of the buffer.
@@ -102,6 +101,24 @@ module Vertx
         else
           raise "bytes must be 4 or 8"
       end
+    end
+
+    # Return bytes from the buffer interpreted as a String
+    # @param pos [FixNum] the position in the buffer from where to start reading
+    # @param end_pos [FixNum] the position in the buffer to end reading
+    # @param enc [String] The encoding to use
+    # @return [String] the String
+    def get_string(pos, end_pos, enc = 'UTF-8')
+      @buffer.getString(pos, end_pos, enc)
+    end
+
+    # Return bytes in the buffer as a Buffer
+    # @param start_pos [FixNum] - the position in this buffer from where to start the copy.
+    # @param end_pos [FixNum] - the copy will be made up to index end_pos - 1
+    # @return [Buffer] the copy
+    def get_buffer(pos, end_pos)
+      j_buff = @buffer.getBuffer(pos, end_pos)
+      Buffer.new(j_buff)
     end
 
     # Appends a buffer to the end of this buffer. The buffer will expand as necessary to accomodate any bytes written.
@@ -198,21 +215,24 @@ module Vertx
     # @param pos [FixNum] - the position in this buffer from where to start writing the buffer
     # @param buff [Buffer] - the buffer to write into this buffer
     # @return [Buffer] a reference to self so multiple operations can be appended together.
-    def set_bytes(pos, buff)
+    def set_buffer(pos, buff)
       @buffer.setBytes(pos, buff._to_java_buffer)
+      self
+    end
+
+    # Set bytes in the buffer to the string encoding in the specified encoding
+    # @param pos [FixNum] - the position in this buffer from where to start writing the string
+    # @param str [String] the string
+    # @param enc [String] the encoding
+    # @return [Buffer] a reference to self so multiple operations can be appended together.
+    def set_string(pos, str, enc = 'UTF-8')
+      @buffer.setString(pos, str, enc)
+      self
     end
 
     # @return [FixNum] the length of this buffer, in bytes.
     def length
       @buffer.length
-    end
-
-    # Get a copy of part of this buffer.
-    # @param start_pos [FixNum] - the position in this buffer from where to start the copy.
-    # @param end_pos [FixNum] - the copy will be made up to index end_pos - 1
-    # @return [Buffer] the copy
-    def copy_part(start_pos, end_pos)
-      Buffer.new(@buffer.copy(start_pos, end_pos))
     end
 
     # Get a copy of the entire buffer.

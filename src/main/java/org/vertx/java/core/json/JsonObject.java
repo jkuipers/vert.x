@@ -54,12 +54,7 @@ public class JsonObject {
    * @param jsonString The string form of a JSON object
    */
   public JsonObject(String jsonString) {
-    try {
-      map = Json.mapper.readValue(jsonString, Map.class);
-      } catch (Exception e) {
-      e.printStackTrace();
-      throw new DecodeException("Failed to decode JSON object from string: " + jsonString);
-    }
+    map = (Map)Json.decodeValue(jsonString, Map.class);
   }
 
   public JsonObject putString(String fieldName, String value) {
@@ -117,6 +112,36 @@ public class JsonObject {
   public byte[] getBinary(String fieldName) {
     String encoded = (String)map.get(fieldName);
     return Base64.decode(encoded);
+  }
+
+  public String getString(String fieldName, String def) {
+    String str = getString(fieldName);
+    return str == null ? def : str;
+  }
+
+  public JsonObject getObject(String fieldName, JsonObject def) {
+    JsonObject obj = getObject(fieldName);
+    return obj == null ? def : obj;
+  }
+
+  public JsonArray getArray(String fieldName, JsonArray def) {
+    JsonArray arr = getArray(fieldName);
+    return arr == null ? def : arr;
+  }
+
+  public boolean getBoolean(String fieldName, boolean def) {
+    Boolean b = getBoolean(fieldName);
+    return b == null ? def : b;
+  }
+
+  public Number getNumber(String fieldName, int def) {
+    Number n = getNumber(fieldName);
+    return n == null ? def : n;
+  }
+
+  public byte[] getBinary(String fieldName, byte[] def) {
+    byte[] b = getBinary(fieldName);
+    return b == null ? def : b;
   }
 
   public Set<String> getFieldNames() {
@@ -183,4 +208,24 @@ public class JsonObject {
     return true;
   }
 
+  public Map<String, Object> toMap() {
+    return convertMap(map);
+  }
+
+  static Map<String, Object> convertMap(Map<String, Object> map) {
+    Map<String, Object> converted = new HashMap<>(map.size());
+    for (Map.Entry<String, Object> entry: map.entrySet()) {
+      Object obj = entry.getValue();
+      if (obj instanceof Map) {
+        Map jm = (Map)obj;
+        converted.put(entry.getKey(), convertMap(jm));
+      } else if (obj instanceof List) {
+        List list = (List)obj;
+        converted.put(entry.getKey(), JsonArray.convertList(list));
+      } else {
+        converted.put(entry.getKey(), obj);
+      }
+    }
+    return converted;
+  }
 }

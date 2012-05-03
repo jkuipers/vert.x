@@ -16,13 +16,13 @@
 
 var vertx = vertx || {};
 
-if (!vertx.EventBus) {
-  vertx.EventBus = new (function() {
+if (!vertx.eventBus) {
+  vertx.eventBus = new (function() {
     var that = this;
 
     var handlerMap = {};
 
-    var jEventBus = org.vertx.java.core.eventbus.EventBus.instance;
+    var jEventBus = org.vertx.java.deploy.impl.VertxLocator.vertx.eventBus();
 
     function checkHandlerParams(address, handler) {
       if (!address) {
@@ -69,7 +69,7 @@ if (!vertx.EventBus) {
       });
     }
 
-    that.registerHandler = function(address, handler) {
+    function registerHandler(address, handler, localOnly) {
       checkHandlerParams(address, handler);
 
       var wrapped = wrappedHandler(handler);
@@ -78,7 +78,19 @@ if (!vertx.EventBus) {
       // have to keep track of it :(
       handlerMap[handler] = wrapped;
 
-      jEventBus.registerHandler(address, wrapped);
+      if (localOnly) {
+        return jEventBus.registerLocalHandler(address, wrapped);
+      } else {
+        return jEventBus.registerHandler(address, wrapped);
+      }
+    }
+
+    that.registerLocalHandler = function(address, handler) {
+      return registerHandler(address, handler, true);
+    };
+
+    that.registerHandler = function(address, handler) {
+      return registerHandler(address, handler, false);
     };
 
     that.unregisterHandler = function(address, handler) {
@@ -140,30 +152,5 @@ if (!vertx.EventBus) {
     };
 
   })();
-
-  vertx.SockJSBridgeHandler = function() {
-    var jHandler = org.vertx.java.core.eventbus.SockJSBridgeHandler();
-    var handler = new org.vertx.java.core.Handler({
-      handle: function(sock) {
-        jHandler.handle(sock);
-      }
-    });
-    handler.addPermitted = function(permitted) {
-      for (var i = 0; i < permitted.length; i++) {
-        var match = permitted[i];
-        var json_str = JSON.stringify(match);
-        var jJson = new org.vertx.java.core.json.JsonObject(json_str);
-        jHandler.addPermitted(jJson);
-      }
-    }
-    return handler;
-  }
-
-  vertx.SockJSBridge = function(httpServer, sockJSConfig, permitted) {
-    var sockJSServer = new vertx.SockJSServer(httpServer);
-    var handler = new vertx.SockJSBridgeHandler();
-    handler.addPermitted(permitted);
-    sockJSServer.installApp(sockJSConfig, handler);
-  }
 
 }

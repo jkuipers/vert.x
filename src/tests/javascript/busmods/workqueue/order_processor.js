@@ -19,7 +19,7 @@ load('test_utils.js');
 
 var tu = new TestUtils();
 
-var eb = vertx.EventBus;
+var eb = vertx.eventBus;
 
 var id = vertx.generateUUID();
 
@@ -46,7 +46,6 @@ function vertxStop() {
     processor: id
   });
   eb.unregisterHandler(id, handler);
-  tu.checkContext();
   if (!dontsendAppLifeCycle) {
     tu.appStopped();
   }

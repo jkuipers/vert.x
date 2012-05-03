@@ -24,7 +24,6 @@ import org.vertx.java.core.http.HttpServer;
 import org.vertx.java.core.http.ServerWebSocket;
 import org.vertx.java.core.http.WebSocket;
 import org.vertx.java.core.http.WebSocketVersion;
-import org.vertx.java.core.shareddata.SharedData;
 import org.vertx.java.framework.TestClientBase;
 import org.vertx.java.framework.TestUtils;
 
@@ -41,7 +40,7 @@ public class WebsocketsTestClient extends TestClientBase {
   @Override
   public void start() {
     super.start();
-    client = new HttpClient().setHost("localhost").setPort(8080);
+    client = vertx.createHttpClient().setHost("localhost").setPort(8080);
     tu.appReady();
   }
 
@@ -85,11 +84,11 @@ public class WebsocketsTestClient extends TestClientBase {
   }
 
   public void testWSBinaryHybi17() throws Exception {
-    testWS(true, WebSocketVersion.HYBI_17);
+    testWS(true, WebSocketVersion.RFC6455);
   }
 
   public void testWSStringHybi17() throws Exception {
-    testWS(false, WebSocketVersion.HYBI_17);
+    testWS(false, WebSocketVersion.RFC6455);
   }
 
   public void testWriteFromConnectHybi00() throws Exception {
@@ -101,7 +100,7 @@ public class WebsocketsTestClient extends TestClientBase {
   }
 
   public void testWriteFromConnectHybi17() throws Exception {
-    testWriteFromConnectHandler(WebSocketVersion.HYBI_17);
+    testWriteFromConnectHandler(WebSocketVersion.RFC6455);
   }
 
   // TODO close and exception tests
@@ -112,7 +111,7 @@ public class WebsocketsTestClient extends TestClientBase {
 
     final String path = "/some/path";
 
-    server = new HttpServer().websocketHandler(new Handler<ServerWebSocket>() {
+    server = vertx.createHttpServer().websocketHandler(new Handler<ServerWebSocket>() {
       public void handle(final ServerWebSocket ws) {
         tu.checkContext();
         tu.azzert(path.equals(ws.path));
@@ -134,7 +133,7 @@ public class WebsocketsTestClient extends TestClientBase {
     client.connectWebsocket(path, version, new Handler<WebSocket>() {
       public void handle(final WebSocket ws) {
         tu.checkContext();
-        final Buffer received = Buffer.create(0);
+        final Buffer received = new Buffer();
         ws.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer data) {
             tu.checkContext();
@@ -145,16 +144,16 @@ public class WebsocketsTestClient extends TestClientBase {
             }
           }
         });
-        final Buffer sent = Buffer.create(0);
+        final Buffer sent = new Buffer();
         for (int i = 0; i < sends; i++) {
           if (binary) {
-            Buffer buff = Buffer.create(TestUtils.generateRandomByteArray(bsize));
+            Buffer buff = new Buffer(TestUtils.generateRandomByteArray(bsize));
             ws.writeBinaryFrame(buff);
             sent.appendBuffer(buff);
           } else {
-            String str = TestUtils.randomAlphaString(100);
+            String str = TestUtils.randomAlphaString(bsize);
             ws.writeTextFrame(str);
-            sent.appendBuffer(Buffer.create(str, "UTF-8"));
+            sent.appendBuffer(new Buffer(str, "UTF-8"));
           }
         }
       }
@@ -165,9 +164,9 @@ public class WebsocketsTestClient extends TestClientBase {
 
     final String path = "/some/path";
 
-    final Buffer buff = Buffer.create("AAA");
+    final Buffer buff = new Buffer("AAA");
 
-    server = new HttpServer().websocketHandler(new Handler<ServerWebSocket>() {
+    server = vertx.createHttpServer().websocketHandler(new Handler<ServerWebSocket>() {
       public void handle(final ServerWebSocket ws) {
         tu.azzert(path.equals(ws.path));
         ws.writeBinaryFrame(buff);
@@ -176,7 +175,7 @@ public class WebsocketsTestClient extends TestClientBase {
 
     client.connectWebsocket(path, version, new Handler<WebSocket>() {
       public void handle(final WebSocket ws) {
-        final Buffer received = Buffer.create(0);
+        final Buffer received = new Buffer();
         ws.dataHandler(new Handler<Buffer>() {
           public void handle(Buffer data) {
             received.appendBuffer(data);
@@ -195,7 +194,7 @@ public class WebsocketsTestClient extends TestClientBase {
 
     final String path = "/some/path";
 
-    server = new HttpServer().websocketHandler(new Handler<ServerWebSocket>() {
+    server = vertx.createHttpServer().websocketHandler(new Handler<ServerWebSocket>() {
       public void handle(final ServerWebSocket ws) {
 
         tu.checkContext();
@@ -219,7 +218,7 @@ public class WebsocketsTestClient extends TestClientBase {
   }
 
   public void testSharedServersMultipleInstances1() {
-    final int numConnections = SharedData.instance.<String, Integer>getMap("params").get("numConnections");
+    final int numConnections = vertx.sharedData().<String, Integer>getMap("params").get("numConnections");
     final AtomicInteger counter = new AtomicInteger(0);
     for (int i = 0; i < numConnections; i++) {
       client.connectWebsocket("someurl", new Handler<WebSocket>() {

@@ -35,8 +35,8 @@ def test_echo
     sends = 10
     size = 100
 
-    sent = Buffer.create(0)
-    received = Buffer.create(0)
+    sent = Buffer.create()
+    received = Buffer.create()
 
     socket.data_handler { |data|
       @tu.check_context
@@ -58,6 +58,11 @@ def test_echo
       #puts "end\n"
     }
 
+    socket.pause
+    socket.resume
+    socket.write_queue_full?
+    socket.write_queue_max_size=100000
+
     (1..sends).each { |i|
       data = TestUtils::gen_buffer(size)
       sent.append_buffer(data)
@@ -71,7 +76,7 @@ def test_echo_ssl
 
   # Let's do full SSL with client auth
 
-  @server = NetServer.new;
+  @server = NetServer.new
   @server.ssl = true
   @server.key_store_path = './src/tests/keystores/server-keystore.jks'
   @server.key_store_password = 'wibble'
@@ -99,8 +104,8 @@ def test_echo_ssl
     sends = 10
     size = 100
 
-    sent = Buffer.create(0)
-    received = Buffer.create(0)
+    sent = Buffer.create()
+    received = Buffer.create()
 
     socket.data_handler { |data|
       @tu.check_context
@@ -142,6 +147,36 @@ def test_echo_ssl
       socket.write_buffer(data)
     }
   }
+end
+
+def test_write_str
+
+  @server = NetServer.new.connect_handler { |socket|
+    @tu.check_context
+    socket.data_handler { |data|
+      @tu.check_context
+      socket.write_buffer(data) # Just echo it back
+    }
+  }.listen(8080)
+
+  @client = NetClient.new.connect(8080, "localhost") { |socket|
+    @tu.check_context
+    sent = 'some-string'
+    received = Buffer.create()
+
+    socket.data_handler { |data|
+      @tu.check_context
+      received.append_buffer(data)
+
+      if received.length == sent.length
+        @tu.azzert(sent == received.to_s)
+        @tu.test_complete
+      end
+    }
+
+    socket.write_str(sent)
+  }
+
 end
 
 # Basically we just need to touch all methods, the real testing occurs in the Java tests
